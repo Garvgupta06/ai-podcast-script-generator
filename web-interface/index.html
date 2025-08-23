@@ -272,18 +272,23 @@
                                 <h4 class="mb-0">AI Enhancement</h4>
                             </div>
                             
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Note:</strong> AI enhancement requires API keys. If not configured, the system will use processed transcript with professional formatting.
+                            </div>
+                            
                             <div class="row align-items-end">
                                 <div class="col-md-6">
                                     <label for="enhancementType" class="form-label">Enhancement Level</label>
                                     <select class="form-select" id="enhancementType">
+                                        <option value="skip">Skip AI Enhancement (Recommended for demo)</option>
                                         <option value="comprehensive">Comprehensive - Full AI enhancement</option>
                                         <option value="minimal">Minimal - Basic cleanup only</option>
-                                        <option value="skip">Skip - No AI enhancement</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
                                     <button class="btn btn-primary w-100" onclick="enhanceContent()">
-                                        <i class="fas fa-magic"></i> Enhance with AI
+                                        <i class="fas fa-magic"></i> Continue Processing
                                         <span class="loading spinner-border spinner-border-sm ms-2" role="status"></span>
                                     </button>
                                 </div>
@@ -318,6 +323,14 @@
                                 <label for="showTagline" class="form-label">Show Tagline</label>
                                 <input type="text" class="form-control" id="showTagline" value="Exploring the future of artificial intelligence">
                             </div>
+                            
+                            <div class="mt-3 d-flex justify-content-end">
+                                <button class="btn btn-primary" onclick="proceedToScriptGeneration()">
+                                    <i class="fas fa-arrow-right"></i> Continue to Script Generation
+                                </button>
+                            </div>
+                            
+                            <div id="step3Output" class="output-container" style="display: none;"></div>
                         </div>
                         
                         <!-- Step 4: Script Generation -->
@@ -632,42 +645,88 @@
                 // Combine segments for enhancement
                 const combinedText = processedTranscript.segments.map(seg => seg.text).join('\n\n');
                 
-                const result = await apiCall('/api/enhance-content', {
-                    content: combinedText,
-                    enhancement_type: enhancementType
-                }, 'POST');
-                
-                if (result.success) {
-                    enhancedContent = {
-                        ...processedTranscript,
-                        enhanced_text: result.data.enhanced_content,
+                // Try AI enhancement first, but fallback gracefully
+                try {
+                    const result = await apiCall('/api/enhance-content', {
+                        content: combinedText,
                         enhancement_type: enhancementType
-                    };
+                    }, 'POST');
+                    
+                    if (result.success) {
+                        enhancedContent = {
+                            ...processedTranscript,
+                            enhanced_text: result.data.enhanced_content,
+                            enhancement_type: enhancementType
+                        };
+                        
+                        const outputHtml = `
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-magic"></i> Content Enhanced Successfully!</h6>
+                                <p><strong>Provider:</strong> ${result.data.provider}</p>
+                                <p><strong>Improvements:</strong></p>
+                                <ul class="mb-0">
+                                    ${result.data.improvements.map(imp => `<li>${imp}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                        
+                        showOutput('step2Output', outputHtml);
+                        updateProgress(3, 'Content enhanced - configure your podcast');
+                    } else {
+                        throw new Error(result.error || 'Enhancement failed');
+                    }
+                } catch (aiError) {
+                    // AI enhancement failed, use fallback
+                    console.warn('AI enhancement failed:', aiError.message);
+                    enhancedContent = processedTranscript;
                     
                     const outputHtml = `
-                        <div class="alert alert-success">
-                            <h6><i class="fas fa-magic"></i> Content Enhanced Successfully!</h6>
-                            <p><strong>Provider:</strong> ${result.data.provider}</p>
-                            <p><strong>Improvements:</strong></p>
-                            <ul class="mb-0">
-                                ${result.data.improvements.map(imp => `<li>${imp}</li>`).join('')}
-                            </ul>
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-info-circle"></i> Using Basic Enhancement</h6>
+                            <p>AI enhancement is not available (requires API key setup). Using processed transcript with basic cleanup.</p>
+                            <p><strong>Note:</strong> The script will still be generated with professional formatting and structure.</p>
                         </div>
                     `;
                     
                     showOutput('step2Output', outputHtml);
-                    updateProgress(3, 'Content enhanced - configure your podcast');
-                } else {
-                    showError('step2Output', 'AI enhancement failed - using original content');
-                    enhancedContent = processedTranscript;
+                    updateProgress(3, 'Ready for podcast configuration (basic processing)');
                 }
+                
             } catch (error) {
-                showError('step2Output', `AI enhancement failed: ${error.message} - using original content`);
+                // Final fallback
                 enhancedContent = processedTranscript;
+                showError('step2Output', `Enhancement failed: ${error.message} - proceeding with processed transcript`);
                 updateProgress(3, 'Ready for podcast configuration');
             } finally {
                 showLoading(button, false);
             }
+        }
+        
+        function proceedToScriptGeneration() {
+            // Validate configuration
+            const showName = document.getElementById('showName').value.trim();
+            const hostName = document.getElementById('hostName').value.trim();
+            
+            if (!showName || !hostName) {
+                alert('Please fill in both Show Name and Host Name');
+                return;
+            }
+            
+            // Show configuration confirmation
+            const configHtml = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-cog"></i> Configuration Set!</h6>
+                    <ul class="mb-0">
+                        <li><strong>Show:</strong> ${showName}</li>
+                        <li><strong>Host:</strong> ${hostName}</li>
+                        <li><strong>Tagline:</strong> ${document.getElementById('showTagline').value}</li>
+                        <li><strong>Episode:</strong> ${document.getElementById('episodeTitle').value || 'Auto-generated'}</li>
+                    </ul>
+                </div>
+            `;
+            
+            showOutput('step3Output', configHtml);
+            updateProgress(4, 'Configuration complete - ready to generate script');
         }
         
         async function generateScript() {
