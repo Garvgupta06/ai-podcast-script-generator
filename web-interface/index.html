@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ AI Podcast Script Generator</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #007cba;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .step-container {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .step-container:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 5px 15px rgba(0, 124, 186, 0.1);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        .step-number {
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 124, 186, 0.25);
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .output-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: inline-block;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .status-error {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .status-processing {
+            background: var(--warning-color);
+            color: #212529;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .script-preview {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .step-container {
+                margin: 1rem 0;
+                padding: 1rem;
+            }
+            
+            .header-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="main-container">
+                    <!-- Header Section -->
+                    <div class="header-section">
+                        <h1 class="display-4 mb-3">
+                            <i class="fas fa-microphone-alt"></i>
+                            AI Podcast Script Generator
+                        </h1>
+                        <p class="lead">Transform raw transcripts into polished podcast scripts with AI-powered enhancements</p>
+                        
+                        <!-- Feature highlights -->
+                        <div class="row mt-4">
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <i class="fas fa-file-text feature-icon"></i>
+                                <h6>Transcript Processing</h6>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <i class="fas fa-magic feature-icon"></i>
+                                <h6>AI Enhancement</h6>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <i class="fas fa-headphones feature-icon"></i>
+                                <h6>Script Generation</h6>
+                            </div>
+                            <div class="col-md-3 col-sm-6 mb-3">
+                                <i class="fas fa-sticky-note feature-icon"></i>
+                                <h6>Show Notes</h6>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content -->
+                    <div class="p-4">
+                        <!-- Progress Indicator -->
+                        <div class="progress-container">
+                            <div class="progress">
+                                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="mt-2 text-center">
+                                <span id="progressText">Ready to start</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 1: Input Source -->
+                        <div class="step-container" id="step1">
+                            <div class="step-header">
+                                <div class="step-number">1</div>
+                                <h4 class="mb-0">Content Input</h4>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="sourceType" class="form-label">Source Type</label>
+                                    <select class="form-select" id="sourceType">
+                                        <option value="manual">Manual Input</option>
+                                        <option value="youtube">YouTube Video</option>
+                                        <option value="news_url">News Article</option>
+                                        <option value="web_article">Web Article</option>
+                                        <option value="file_upload">File Upload</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="sourceUrl" class="form-label">Source URL <small class="text-muted">(for URL sources)</small></label>
+                                    <input type="url" class="form-control" id="sourceUrl" placeholder="https://example.com/article">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label for="rawTranscript" class="form-label">Raw Transcript</label>
+                                <textarea class="form-control" id="rawTranscript" rows="8" 
+                                    placeholder="Paste your raw transcript here, or use URL fetch above..."></textarea>
+                            </div>
+                            
+                            <div class="mt-3 d-flex gap-2">
+                                <button class="btn btn-outline-primary" onclick="fetchFromUrl()">
+                                    <i class="fas fa-download"></i> Fetch from URL
+                                </button>
+                                <button class="btn btn-primary" onclick="processTranscript()">
+                                    <i class="fas fa-cog"></i> Process Transcript
+                                    <span class="loading spinner-border spinner-border-sm ms-2" role="status"></span>
+                                </button>
+                            </div>
+                            
+                            <div id="step1Output" class="output-container" style="display: none;"></div>
+                        </div>
+                        
+                        <!-- Step 2: AI Enhancement -->
+                        <div class="step-container" id="step2" style="opacity: 0.5; pointer-events: none;">
+                            <div class="step-header">
+                                <div class="step-number">2</div>
+                                <h4 class="mb-0">AI Enhancement</h4>
+                            </div>
+                            
+                            <div class="row align-items-end">
+                                <div class="col-md-6">
+                                    <label for="enhancementType" class="form-label">Enhancement Level</label>
+                                    <select class="form-select" id="enhancementType">
+                                        <option value="comprehensive">Comprehensive - Full AI enhancement</option>
+                                        <option value="minimal">Minimal - Basic cleanup only</option>
+                                        <option value="skip">Skip - No AI enhancement</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-primary w-100" onclick="enhanceContent()">
+                                        <i class="fas fa-magic"></i> Enhance with AI
+                                        <span class="loading spinner-border spinner-border-sm ms-2" role="status"></span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="step2Output" class="output-container" style="display: none;"></div>
+                        </div>
+                        
+                        <!-- Step 3: Podcast Configuration -->
+                        <div class="step-container" id="step3" style="opacity: 0.5; pointer-events: none;">
+                            <div class="step-header">
+                                <div class="step-number">3</div>
+                                <h4 class="mb-0">Podcast Configuration</h4>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="showName" class="form-label">Show Name</label>
+                                    <input type="text" class="form-control" id="showName" value="AI Insights Podcast">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="hostName" class="form-label">Host Name</label>
+                                    <input type="text" class="form-control" id="hostName" value="Your Host Name">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="episodeTitle" class="form-label">Episode Title</label>
+                                    <input type="text" class="form-control" id="episodeTitle" placeholder="Auto-generated">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label for="showTagline" class="form-label">Show Tagline</label>
+                                <input type="text" class="form-control" id="showTagline" value="Exploring the future of artificial intelligence">
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Script Generation -->
+                        <div class="step-container" id="step4" style="opacity: 0.5; pointer-events: none;">
+                            <div class="step-header">
+                                <div class="step-number">4</div>
+                                <h4 class="mb-0">Generate Podcast Script</h4>
+                            </div>
+                            
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <p class="text-muted mb-2">
+                                        Generate a complete podcast script with intro, main content, transitions, outro, and show notes.
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-primary w-100" onclick="generateScript()">
+                                        <i class="fas fa-microphone"></i> Generate Script
+                                        <span class="loading spinner-border spinner-border-sm ms-2" role="status"></span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="step4Output" class="output-container" style="display: none;"></div>
+                        </div>
+                        
+                        <!-- Step 5: Export & Download -->
+                        <div class="step-container" id="step5" style="opacity: 0.5; pointer-events: none;">
+                            <div class="step-header">
+                                <div class="step-number">5</div>
+                                <h4 class="mb-0">Export & Download</h4>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="exportFormat" class="form-label">Export Format</label>
+                                    <select class="form-select" id="exportFormat">
+                                        <option value="txt">Plain Text (.txt)</option>
+                                        <option value="md">Markdown (.md)</option>
+                                        <option value="json">JSON Data (.json)</option>
+                                        <option value="docx">Word Document (.docx)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary flex-fill" onclick="previewScript()">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </button>
+                                        <button class="btn btn-primary flex-fill" onclick="exportScript()">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Statistics Cards -->
+                            <div class="row mt-4" id="statsContainer" style="display: none;">
+                                <div class="col-md-3">
+                                    <div class="stats-card">
+                                        <h3 id="statDuration">0</h3>
+                                        <small>Minutes</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stats-card">
+                                        <h3 id="statSegments">0</h3>
+                                        <small>Segments</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stats-card">
+                                        <h3 id="statWords">0</h3>
+                                        <small>Words</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stats-card">
+                                        <h3 id="statTransitions">0</h3>
+                                        <small>Transitions</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Script Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye"></i> Podcast Script Preview
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="scriptPreview" class="script-preview"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="exportScript()">
+                        <i class="fas fa-download"></i> Download Script
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Main Application JavaScript -->
+    <script>
+        // Configuration
+        const API_BASE_URL = 'https://ai-podcast-script-api-prod.garvgupta2906.workers.dev';
+        
+        // Global state
+        let processedTranscript = null;
+        let enhancedContent = null;
+        let podcastScript = null;
+        let currentStep = 1;
+        
+        // Utility functions
+        function updateProgress(step, text) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            const progress = (step / 5) * 100;
+            progressBar.style.width = progress + '%';
+            progressText.textContent = text;
+            
+            currentStep = step;
+            
+            // Enable/disable steps
+            for (let i = 1; i <= 5; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                if (i <= step) {
+                    stepEl.style.opacity = '1';
+                    stepEl.style.pointerEvents = 'auto';
+                } else {
+                    stepEl.style.opacity = '0.5';
+                    stepEl.style.pointerEvents = 'none';
+                }
+            }
+        }
+        
+        function showLoading(buttonId, show = true) {
+            const button = typeof buttonId === 'string' ? document.querySelector(buttonId) : buttonId;
+            const loading = button.querySelector('.loading');
+            if (loading) {
+                loading.classList.toggle('show', show);
+            }
+            button.disabled = show;
+        }
+        
+        function showOutput(containerId, content, type = 'info') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = content;
+            container.style.display = 'block';
+            
+            // Add status class
+            container.className = `output-container ${type}`;
+        }
+        
+        function showError(containerId, message) {
+            const errorHtml = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            showOutput(containerId, errorHtml, 'error');
+        }
+        
+        function showSuccess(containerId, message) {
+            const successHtml = `
+                <div class="alert alert-success" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>Success:</strong> ${message}
+                </div>
+            `;
+            showOutput(containerId, successHtml, 'success');
+        }
+        
+        // API functions
+        async function apiCall(endpoint, data = null, method = 'GET') {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Step functions
+        async function fetchFromUrl() {
+            const sourceUrl = document.getElementById('sourceUrl').value;
+            const sourceType = document.getElementById('sourceType').value;
+            
+            if (!sourceUrl) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            const button = event.target;
+            showLoading(button);
+            
+            try {
+                const result = await apiCall('/api/fetch-transcript', {
+                    source_url: sourceUrl,
+                    source_type: sourceType
+                }, 'POST');
+                
+                if (result.success) {
+                    document.getElementById('rawTranscript').value = result.data.transcript;
+                    showSuccess('step1Output', `Content fetched successfully! Title: ${result.data.title || 'Unknown'}`);
+                } else {
+                    showError('step1Output', result.message || 'Failed to fetch content');
+                }
+            } catch (error) {
+                showError('step1Output', error.message);
+            } finally {
+                showLoading(button, false);
+            }
+        }
+        
+        async function processTranscript() {
+            const transcript = document.getElementById('rawTranscript').value;
+            const sourceType = document.getElementById('sourceType').value;
+            
+            if (!transcript.trim()) {
+                alert('Please enter a transcript or fetch from URL');
+                return;
+            }
+            
+            const button = event.target;
+            showLoading(button);
+            
+            try {
+                const result = await apiCall('/api/process-transcript', {
+                    transcript: transcript,
+                    source_type: sourceType
+                }, 'POST');
+                
+                if (result.success) {
+                    processedTranscript = result.data;
+                    
+                    const outputHtml = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Transcript Processed Successfully!</h6>
+                            <ul class="mb-0">
+                                <li>Segments: ${result.data.total_segments}</li>
+                                <li>Duration: ${result.data.estimated_total_duration} minutes</li>
+                                <li>Word count: ${result.data.total_word_count}</li>
+                            </ul>
+                        </div>
+                    `;
+                    
+                    showOutput('step1Output', outputHtml);
+                    updateProgress(2, 'Transcript processed - ready for AI enhancement');
+                } else {
+                    showError('step1Output', 'Failed to process transcript');
+                }
+            } catch (error) {
+                showError('step1Output', error.message);
+            } finally {
+                showLoading(button, false);
+            }
+        }
+        
+        async function enhanceContent() {
+            if (!processedTranscript) {
+                alert('Please process a transcript first');
+                return;
+            }
+            
+            const enhancementType = document.getElementById('enhancementType').value;
+            const button = event.target;
+            showLoading(button);
+            
+            try {
+                if (enhancementType === 'skip') {
+                    enhancedContent = processedTranscript;
+                    showSuccess('step2Output', 'Skipped AI enhancement');
+                    updateProgress(3, 'Ready for podcast configuration');
+                    return;
+                }
+                
+                // Combine segments for enhancement
+                const combinedText = processedTranscript.segments.map(seg => seg.text).join('\n\n');
+                
+                const result = await apiCall('/api/enhance-content', {
+                    content: combinedText,
+                    enhancement_type: enhancementType
+                }, 'POST');
+                
+                if (result.success) {
+                    enhancedContent = {
+                        ...processedTranscript,
+                        enhanced_text: result.data.enhanced_content,
+                        enhancement_type: enhancementType
+                    };
+                    
+                    const outputHtml = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-magic"></i> Content Enhanced Successfully!</h6>
+                            <p><strong>Provider:</strong> ${result.data.provider}</p>
+                            <p><strong>Improvements:</strong></p>
+                            <ul class="mb-0">
+                                ${result.data.improvements.map(imp => `<li>${imp}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    
+                    showOutput('step2Output', outputHtml);
+                    updateProgress(3, 'Content enhanced - configure your podcast');
+                } else {
+                    showError('step2Output', 'AI enhancement failed - using original content');
+                    enhancedContent = processedTranscript;
+                }
+            } catch (error) {
+                showError('step2Output', `AI enhancement failed: ${error.message} - using original content`);
+                enhancedContent = processedTranscript;
+                updateProgress(3, 'Ready for podcast configuration');
+            } finally {
+                showLoading(button, false);
+            }
+        }
+        
+        async function generateScript() {
+            if (!enhancedContent) {
+                alert('Please enhance content first');
+                return;
+            }
+            
+            const showConfig = {
+                show_name: document.getElementById('showName').value,
+                host_name: document.getElementById('hostName').value,
+                show_tagline: document.getElementById('showTagline').value,
+                episode_title: document.getElementById('episodeTitle').value
+            };
+            
+            const button = event.target;
+            showLoading(button);
+            
+            try {
+                const result = await apiCall('/api/generate-script', {
+                    processed_transcript: enhancedContent,
+                    show_config: showConfig
+                }, 'POST');
+                
+                if (result.success) {
+                    podcastScript = result.data;
+                    
+                    const outputHtml = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-microphone"></i> Podcast Script Generated Successfully!</h6>
+                            <ul class="mb-0">
+                                <li>Duration: ${result.data.metadata.total_duration} minutes</li>
+                                <li>Segments: ${result.data.metadata.segment_count}</li>
+                                <li>Show: ${showConfig.show_name}</li>
+                                <li>Host: ${showConfig.host_name}</li>
+                            </ul>
+                        </div>
+                    `;
+                    
+                    showOutput('step4Output', outputHtml);
+                    updateProgress(5, 'Script generated - ready to export');
+                    updateStats();
+                } else {
+                    showError('step4Output', 'Failed to generate script');
+                }
+            } catch (error) {
+                showError('step4Output', error.message);
+            } finally {
+                showLoading(button, false);
+            }
+        }
+        
+        function updateStats() {
+            if (!podcastScript) return;
+            
+            document.getElementById('statDuration').textContent = 
+                Math.round(podcastScript.metadata.total_duration);
+            document.getElementById('statSegments').textContent = 
+                podcastScript.metadata.segment_count;
+            document.getElementById('statWords').textContent = 
+                podcastScript.intro.script.split(' ').length + 
+                podcastScript.main_content.reduce((sum, content) => 
+                    sum + content.script.split(' ').length, 0) +
+                podcastScript.outro.script.split(' ').length;
+            document.getElementById('statTransitions').textContent = 
+                podcastScript.main_content.length - 1;
+            
+            document.getElementById('statsContainer').style.display = 'flex';
+        }
+        
+        function previewScript() {
+            if (!podcastScript) {
+                alert('Please generate a script first');
+                return;
+            }
+            
+            // Assemble complete script for preview
+            let fullScript = `PODCAST SCRIPT: ${document.getElementById('showName').value}\n`;
+            fullScript += `Generated: ${new Date().toLocaleDateString()}\n`;
+            fullScript += '='.repeat(60) + '\n\n';
+            
+            fullScript += '### INTRO ###\n';
+            fullScript += podcastScript.intro.script + '\n\n';
+            
+            fullScript += '### MAIN CONTENT ###\n';
+            podcastScript.main_content.forEach((content, index) => {
+                fullScript += `--- Segment ${content.segment_id} (${content.type.toUpperCase()}) ---\n`;
+                fullScript += content.script + '\n\n';
+            });
+            
+            fullScript += '### OUTRO ###\n';
+            fullScript += podcastScript.outro.script + '\n\n';
+            
+            fullScript += '### SHOW NOTES ###\n';
+            fullScript += podcastScript.show_notes.summary + '\n\n';
+            fullScript += 'Key Points:\n';
+            podcastScript.show_notes.key_points.forEach(point => {
+                fullScript += `- ${point}\n`;
+            });
+            
+            document.getElementById('scriptPreview').textContent = fullScript;
+            
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModal.show();
+        }
+        
+        function exportScript() {
+            if (!podcastScript) {
+                alert('Please generate a script first');
+                return;
+            }
+            
+            const format = document.getElementById('exportFormat').value;
+            const showName = document.getElementById('showName').value.replace(/[^a-z0-9]/gi, '_');
+            const filename = `${showName}_script.${format}`;
+            
+            let content = '';
+            let mimeType = 'text/plain';
+            
+            // Assemble complete script
+            let fullScript = `PODCAST SCRIPT: ${document.getElementById('showName').value}\n`;
+            fullScript += `Generated: ${new Date().toLocaleDateString()}\n`;
+            fullScript += '='.repeat(60) + '\n\n';
+            
+            fullScript += '### INTRO ###\n';
+            fullScript += podcastScript.intro.script + '\n\n';
+            
+            fullScript += '### MAIN CONTENT ###\n';
+            podcastScript.main_content.forEach((content, index) => {
+                fullScript += `--- Segment ${content.segment_id} (${content.type.toUpperCase()}) ---\n`;
+                fullScript += content.script + '\n\n';
+            });
+            
+            fullScript += '### OUTRO ###\n';
+            fullScript += podcastScript.outro.script + '\n\n';
+            
+            fullScript += '### SHOW NOTES ###\n';
+            fullScript += podcastScript.show_notes.summary + '\n\n';
+            fullScript += 'Key Points:\n';
+            podcastScript.show_notes.key_points.forEach(point => {
+                fullScript += `- ${point}\n`;
+            });
+            
+            switch (format) {
+                case 'txt':
+                    content = fullScript;
+                    mimeType = 'text/plain';
+                    break;
+                case 'md':
+                    content = fullScript.replace(/###/g, '##').replace(/---/g, '###');
+                    mimeType = 'text/markdown';
+                    break;
+                case 'json':
+                    content = JSON.stringify(podcastScript, null, 2);
+                    mimeType = 'application/json';
+                    break;
+                case 'docx':
+                    alert('DOCX export not yet implemented. Please use TXT or MD format.');
+                    return;
+            }
+            
+            // Create download
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            updateProgress(1, 'Ready to start - enter your content');
+            
+            // Auto-hide URL input for manual input
+            document.getElementById('sourceType').addEventListener('change', function() {
+                const sourceUrl = document.getElementById('sourceUrl');
+                if (this.value === 'manual' || this.value === 'file_upload') {
+                    sourceUrl.style.display = 'none';
+                } else {
+                    sourceUrl.style.display = 'block';
+                }
+            });
+            
+            // Initial hide
+            document.getElementById('sourceUrl').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

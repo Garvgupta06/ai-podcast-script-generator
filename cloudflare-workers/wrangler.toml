@@ -1,0 +1,44 @@
+name = "ai-podcast-script-api"
+main = "src/index.js"
+compatibility_date = "2024-01-15"
+
+# Development environment
+[env.development]
+name = "ai-podcast-script-api-dev"
+
+# Production environment
+[env.production]
+name = "ai-podcast-script-api-prod"
+
+# Environment variables for production
+[env.production.vars]
+ENVIRONMENT = "production"
+OPENAI_MODEL = "gpt-3.5-turbo"
+ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
+RATE_LIMIT_REQUESTS = "100"
+RATE_LIMIT_WINDOW = "3600"
+
+# Environment variables for development
+[env.development.vars]
+ENVIRONMENT = "development"
+OPENAI_MODEL = "gpt-3.5-turbo"
+ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
+RATE_LIMIT_REQUESTS = "1000"
+RATE_LIMIT_WINDOW = "3600"
+
+# KV namespace for storing processed scripts (optional)
+[[env.production.kv_namespaces]]
+binding = "PODCAST_SCRIPTS"
+id = "9aaf69f822ec4ab7a5e19ec793eeb7df"
+preview_id = "d74fb3dbfc1e497fb28e629e9dd290e6"
+
+# Secret environment variables (set via wrangler secret put)
+# Required secrets:
+# - OPENAI_API_KEY (your OpenAI API key)
+# - ANTHROPIC_API_KEY (your Anthropic API key)
+# - VALID_API_KEYS (comma-separated API keys for authentication)
+
+# Optional routes configuration
+# [[routes]]
+# pattern = "api.yourpodcastdomain.com/*"
+# zone_id = "your-cloudflare-zone-id"

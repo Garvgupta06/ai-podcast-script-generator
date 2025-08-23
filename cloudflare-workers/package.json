@@ -1,0 +1,31 @@
+{
+  "name": "ai-podcast-script-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for AI Podcast Script Generator API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev --env development",
+    "deploy": "wrangler deploy --env production",
+    "deploy:dev": "wrangler deploy --env development",
+    "deploy:production": "wrangler deploy --env production",
+    "tail": "wrangler tail --env production",
+    "tail:dev": "wrangler tail --env development",
+    "test": "wrangler dev --test",
+    "setup-secrets": "node setup-secrets.js"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "podcast",
+    "ai",
+    "transcript",
+    "script-generation",
+    "openai",
+    "anthropic",
+    "llm"
+  ],
+  "author": "AI Podcast Script Generator",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
