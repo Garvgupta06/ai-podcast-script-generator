@@ -26,7 +26,35 @@ class PodcastScriptGenerator:
             'intro_music_duration': 10,  # seconds
             'outro_music_duration': 15,  # seconds
             'sponsor_segments': False,
-            'call_to_action': True
+            'call_to_action': True,
+            'speakers': {
+                'format': 'single_host',  # single_host, interview, multi_host, panel
+                'host_name': 'Your Host',
+                'guest_name': None,
+                'co_host_name': None,
+                'participants': []
+            }
+        }
+    
+    def _determine_speaker_format(self, processed_transcript: Dict[str, Any]) -> Dict[str, Any]:
+        """Determine the appropriate speaker format based on content and configuration"""
+        # Check if guest/interview format is specified in config
+        format_type = self.show_config.get('speakers', {}).get('format', 'single_host')
+        
+        # Override based on content analysis
+        segments = processed_transcript.get('segments', [])
+        
+        # Look for Q&A patterns that suggest interview format
+        qa_segments = [s for s in segments if s.get('segment_type') == 'qa']
+        if len(qa_segments) > 2 and format_type == 'single_host':
+            format_type = 'interview'
+        
+        return {
+            'format': format_type,
+            'host_name': self.show_config.get('speakers', {}).get('host_name', 'HOST'),
+            'guest_name': self.show_config.get('speakers', {}).get('guest_name', 'GUEST'),
+            'co_host_name': self.show_config.get('speakers', {}).get('co_host_name', 'CO-HOST'),
+            'participants': self.show_config.get('speakers', {}).get('participants', [])
         }
     
     def generate_complete_script(self, processed_transcript: Dict[str, Any]) -> Dict[str, Any]:
@@ -34,13 +62,17 @@ class PodcastScriptGenerator:
         Generate a complete podcast script from processed transcript
         """
         try:
+            # Determine speaker configuration
+            speaker_config = self._determine_speaker_format(processed_transcript)
+            
             script_sections = {
-                'intro': self._generate_intro(processed_transcript),
-                'main_content': self._generate_main_content(processed_transcript),
+                'intro': self._generate_intro(processed_transcript, speaker_config),
+                'main_content': self._generate_main_content(processed_transcript, speaker_config),
                 'transitions': self._generate_transitions(processed_transcript),
-                'outro': self._generate_outro(processed_transcript),
+                'outro': self._generate_outro(processed_transcript, speaker_config),
                 'show_notes': self._generate_show_notes(processed_transcript),
-                'metadata': self._generate_metadata(processed_transcript)
+                'metadata': self._generate_metadata(processed_transcript),
+                'speaker_config': speaker_config
             }
             
             # Combine all sections into final script
@@ -51,7 +83,8 @@ class PodcastScriptGenerator:
                 'sections': script_sections,
                 'generated_at': datetime.now().isoformat(),
                 'status': 'success',
-                'estimated_duration': self._calculate_total_duration(script_sections)
+                'estimated_duration': self._calculate_total_duration(script_sections),
+                'format': speaker_config['format']
             }
             
         except Exception as e:
@@ -62,9 +95,11 @@ class PodcastScriptGenerator:
                 'message': str(e)
             }
     
-    def _generate_intro(self, transcript_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_intro(self, transcript_data: Dict[str, Any], speaker_config: Dict[str, Any]) -> Dict[str, Any]:
         """Generate podcast intro with hook and episode preview"""
         segments = transcript_data.get('segments', [])
+        format_type = speaker_config['format']
+        host_name = speaker_config['host_name']
         
         # Extract key topics for teaser
         main_topics = []
@@ -72,24 +107,71 @@ class PodcastScriptGenerator:
             if segment.get('topic_keywords'):
                 main_topics.extend(segment['topic_keywords'][:2])
         
-        intro_script = f"""
+        # Generate different intros based on format
+        if format_type == 'interview':
+            guest_name = speaker_config.get('guest_name', 'GUEST')
+            intro_script = f"""
 [INTRO MUSIC - {self.show_config.get('intro_music_duration', 10)} seconds]
 
-HOST: Welcome back to {self.show_config.get('show_name', 'our podcast')}, I'm {self.show_config.get('host_name', 'your host')}, 
+{host_name}: Welcome back to {self.show_config.get('show_name', 'our podcast')}, I'm {host_name}, 
 and this is the show where {self.show_config.get('show_tagline', 'we explore interesting topics')}.
 
 [MUSIC FADES]
 
-HOST: In today's episode, we're diving deep into some fascinating insights about 
+{host_name}: Today I'm joined by our special guest to dive deep into some fascinating insights about 
 {', '.join(main_topics[:3]) if main_topics else 'cutting-edge developments'}. 
 
-We'll explore {self._generate_episode_preview(segments)}, and by the end of this episode, 
+{host_name}: We'll explore {self._generate_episode_preview(segments)}, and by the end of our conversation, 
+you'll have a much clearer understanding of how these developments might impact your world.
+
+{guest_name}: Thanks for having me on the show. I'm excited to share some insights about this topic.
+
+{host_name}: Absolutely! Let's jump right in.
+
+[TRANSITION SOUND]
+            """.strip()
+            
+        elif format_type == 'multi_host':
+            co_host = speaker_config.get('co_host_name', 'CO-HOST')
+            intro_script = f"""
+[INTRO MUSIC - {self.show_config.get('intro_music_duration', 10)} seconds]
+
+{host_name}: Welcome back to {self.show_config.get('show_name', 'our podcast')}, I'm {host_name}...
+
+{co_host}: ...and I'm {co_host}, and this is the show where {self.show_config.get('show_tagline', 'we explore interesting topics')}.
+
+[MUSIC FADES]
+
+{host_name}: In today's episode, we're diving deep into some fascinating insights about 
+{', '.join(main_topics[:3]) if main_topics else 'cutting-edge developments'}.
+
+{co_host}: That's right! We'll explore {self._generate_episode_preview(segments)}, and by the end of this episode, 
+you'll have a much clearer understanding of how these developments might impact your world.
+
+{host_name}: So let's jump right in.
+
+[TRANSITION SOUND]
+            """.strip()
+            
+        else:  # single_host format (default)
+            intro_script = f"""
+[INTRO MUSIC - {self.show_config.get('intro_music_duration', 10)} seconds]
+
+{host_name}: Welcome back to {self.show_config.get('show_name', 'our podcast')}, I'm {host_name}, 
+and this is the show where {self.show_config.get('show_tagline', 'we explore interesting topics')}.
+
+[MUSIC FADES]
+
+{host_name}: In today's episode, we're diving deep into some fascinating insights about 
+{', '.join(main_topics[:3]) if main_topics else 'cutting-edge developments'}. 
+
+{host_name}: We'll explore {self._generate_episode_preview(segments)}, and by the end of this episode, 
 you'll have a much clearer understanding of how these developments might impact your world.
 
 [TRANSITION SOUND]
 
-So let's jump right in.
-        """.strip()
+{host_name}: So let's jump right in.
+            """.strip()
         
         return {
             'script': intro_script,
@@ -98,7 +180,8 @@ So let's jump right in.
                 {'type': 'intro_music', 'duration': self.show_config.get('intro_music_duration', 10)},
                 {'type': 'transition_sound', 'timing': 'after_preview'}
             ],
-            'topics_preview': main_topics[:3]
+            'topics_preview': main_topics[:3],
+            'format': format_type
         }
     
     def _generate_episode_preview(self, segments: List[Dict]) -> str:
@@ -123,7 +206,7 @@ So let's jump right in.
         else:
             return preview_items[0] if preview_items else "fascinating insights"
     
-    def _generate_main_content(self, transcript_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _generate_main_content(self, transcript_data: Dict[str, Any], speaker_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Transform transcript segments into polished podcast content"""
         segments = transcript_data.get('segments', [])
         main_content = []
@@ -132,7 +215,7 @@ So let's jump right in.
             content_block = {
                 'segment_id': segment.get('id', i + 1),
                 'type': segment.get('segment_type', 'content'),
-                'script': self._polish_segment_content(segment),
+                'script': self._polish_segment_content(segment, speaker_config),
                 'estimated_duration': segment.get('estimated_duration', 2),
                 'production_notes': self._generate_production_notes(segment),
                 'keywords': segment.get('topic_keywords', [])
@@ -141,42 +224,120 @@ So let's jump right in.
         
         return main_content
     
-    def _polish_segment_content(self, segment: Dict[str, Any]) -> str:
-        """Polish raw transcript segment into podcast-ready content"""
+    def _polish_segment_content(self, segment: Dict[str, Any], speaker_config: Dict[str, Any]) -> str:
+        """Polish raw transcript segment into podcast-ready content with multiple speakers"""
         raw_text = segment.get('text', '')
         segment_type = segment.get('segment_type', 'content')
+        format_type = speaker_config['format']
+        host_name = speaker_config['host_name']
         
-        # Add hosting cues and polish based on segment type
-        if segment_type == 'data':
-            polished = f"""
-HOST: Now, here's something that really caught my attention. {raw_text}
+        # Add hosting cues and polish based on segment type and format
+        if format_type == 'interview':
+            guest_name = speaker_config.get('guest_name', 'GUEST')
+            
+            if segment_type == 'data':
+                polished = f"""
+{host_name}: Now, here's something that really caught my attention. {raw_text}
+
+{host_name}: Let me break that down for you - because these numbers tell a really important story.
+
+{guest_name}: Exactly, and what's particularly interesting about these statistics is how they reveal the underlying trends we've been discussing.
+
+[PAUSE FOR EMPHASIS]
+                """.strip()
+            
+            elif segment_type == 'narrative':
+                polished = f"""
+{host_name}: Let me share a story that perfectly illustrates this point. {raw_text}
+
+{guest_name}: That's a perfect example. And this isn't just one isolated case - we're seeing this pattern emerge across the industry.
+
+{host_name}: Absolutely. What does this tell us about where we're heading?
+                """.strip()
+            
+            elif segment_type == 'qa':
+                polished = f"""
+{host_name}: Now, you might be wondering... {raw_text}
+
+{guest_name}: It's a great question, and the answer might surprise you.
+
+{host_name}: I have to say, when I first learned about this, it completely changed my perspective.
+                """.strip()
+            
+            else:
+                # General interview content
+                polished = f"""
+{host_name}: {raw_text}
+
+{guest_name}: That's really insightful. Can you elaborate on that?
+
+{host_name}: [NATURAL PAUSE] Absolutely, let me dive deeper into that.
+                """.strip()
+        
+        elif format_type == 'multi_host':
+            co_host = speaker_config.get('co_host_name', 'CO-HOST')
+            
+            if segment_type == 'data':
+                polished = f"""
+{host_name}: Now, here's something that really caught my attention. {raw_text}
+
+{co_host}: Wow, those numbers are really striking. 
+
+{host_name}: Right? Let me break that down for our listeners - because these numbers tell a really important story.
+
+[PAUSE FOR EMPHASIS]
+                """.strip()
+            
+            elif segment_type == 'narrative':
+                polished = f"""
+{host_name}: Let me share a story that perfectly illustrates this point. {raw_text}
+
+{co_host}: That's such a compelling example. And this isn't just one isolated case, is it?
+
+{host_name}: Not at all - we're seeing this pattern emerge across the industry.
+                """.strip()
+            
+            else:
+                # General multi-host content  
+                polished = f"""
+{host_name}: {raw_text}
+
+{co_host}: That's really interesting. What do you think about that?
+
+{host_name}: [NATURAL PAUSE] It really makes you think about the broader implications.
+                """.strip()
+        
+        else:  # single_host format
+            if segment_type == 'data':
+                polished = f"""
+{host_name}: Now, here's something that really caught my attention. {raw_text}
 
 [PAUSE FOR EMPHASIS]
 
-HOST: Let me break that down for you - because these numbers tell a really important story.
-            """.strip()
-        
-        elif segment_type == 'narrative':
-            polished = f"""
-HOST: Let me share a story that perfectly illustrates this point. {raw_text}
+{host_name}: Let me break that down for you - because these numbers tell a really important story.
+                """.strip()
+            
+            elif segment_type == 'narrative':
+                polished = f"""
+{host_name}: Let me share a story that perfectly illustrates this point. {raw_text}
 
-HOST: And this isn't just one isolated example - we're seeing this pattern emerge across the industry.
-            """.strip()
-        
-        elif segment_type == 'qa':
-            polished = f"""
-HOST: Now, you might be wondering... {raw_text}
+{host_name}: And this isn't just one isolated example - we're seeing this pattern emerge across the industry.
+                """.strip()
+            
+            elif segment_type == 'qa':
+                polished = f"""
+{host_name}: Now, you might be wondering... {raw_text}
 
-HOST: It's a great question, and the answer might surprise you.
-            """.strip()
-        
-        else:
-            # General content polishing
-            polished = f"""
-HOST: {raw_text}
+{host_name}: It's a great question, and the answer might surprise you.
+                """.strip()
+            
+            else:
+                # General content polishing
+                polished = f"""
+{host_name}: {raw_text}
 
 [NATURAL PAUSE]
-            """.strip()
+                """.strip()
         
         return self._add_natural_speech_patterns(polished)
     
@@ -193,10 +354,27 @@ HOST: {raw_text}
         # Add emphasis markers
         text = re.sub(r'\b(really|very|extremely)\b', r'[EMPHASIS] \1', text, flags=re.IGNORECASE)
         
-        # Add natural pauses
-        text = re.sub(r'([.!?])\s+([A-Z])', r'\1\n\n[NATURAL PAUSE]\n\nHOST: \2', text)
+        # Add natural pauses while preserving speaker labels
+        # Match patterns like "HOST:" or "GUEST:" at the start of lines
+        speaker_pattern = r'([A-Z-]+):\s*'
         
-        return text
+        # Split text into lines and process each one
+        lines = text.split('\n')
+        processed_lines = []
+        
+        for line in lines:
+            # If line has a speaker label, preserve it
+            if re.match(speaker_pattern, line.strip()):
+                processed_lines.append(line)
+            # If it's a production note, preserve it
+            elif line.strip().startswith('[') and line.strip().endswith(']'):
+                processed_lines.append(line)
+            # Otherwise, process for natural speech
+            else:
+                processed_line = re.sub(r'([.!?])\s+([A-Z])', r'\1\n\n[NATURAL PAUSE]\n\n\2', line)
+                processed_lines.append(processed_line)
+        
+        return '\n'.join(processed_lines)
     
     def _generate_production_notes(self, segment: Dict[str, Any]) -> List[str]:
         """Generate production notes for audio editing"""
@@ -255,9 +433,11 @@ HOST: {raw_text}
         else:
             return "subtle_transition"
     
-    def _generate_outro(self, transcript_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_outro(self, transcript_data: Dict[str, Any], speaker_config: Dict[str, Any]) -> Dict[str, Any]:
         """Generate podcast outro with summary and call-to-action"""
         segments = transcript_data.get('segments', [])
+        format_type = speaker_config['format']
+        host_name = speaker_config['host_name']
         key_topics = []
         
         # Extract main topics covered
@@ -267,31 +447,94 @@ HOST: {raw_text}
         
         unique_topics = list(set(key_topics))[:3]  # Top 3 unique topics
         
-        outro_script = f"""
+        if format_type == 'interview':
+            guest_name = speaker_config.get('guest_name', 'GUEST')
+            outro_script = f"""
 [TRANSITION MUSIC - 5 seconds]
 
-HOST: So there you have it - we've covered a lot of ground today, from 
+{host_name}: So there you have it - we've covered a lot of ground today, from 
 {', '.join(unique_topics) if unique_topics else 'these fascinating developments'} 
 and everything in between.
 
-HOST: The key takeaway? {self._generate_key_takeaway(segments)}
+{guest_name}: It's been a pleasure discussing these topics with you. There's so much happening in this space.
+
+{host_name}: Absolutely! The key takeaway? {self._generate_key_takeaway(segments)}
 
 [PAUSE]
 
-HOST: If you found today's episode valuable, please subscribe to {self.show_config.get('show_name', 'our podcast')} 
+{host_name}: Before we wrap up, where can our listeners learn more about your work?
+
+{guest_name}: You can find me [GUEST CONTACT INFO TO BE FILLED].
+
+{host_name}: Perfect! And if you found today's conversation valuable, please subscribe to {self.show_config.get('show_name', 'our podcast')} 
+wherever you get your podcasts, and leave us a review.
+
+{host_name}: Next week, we'll be diving into [NEXT EPISODE TEASER], so make sure you're subscribed.
+
+{host_name}: Thanks again for joining us today!
+
+{guest_name}: Thanks for having me!
+
+{host_name}: I'm {host_name}, thanks for listening to {self.show_config.get('show_name', 'our podcast')}.
+
+[OUTRO MUSIC - {self.show_config.get('outro_music_duration', 30)} seconds]
+            """.strip()
+            
+        elif format_type == 'multi_host':
+            co_host = speaker_config.get('co_host_name', 'CO-HOST')
+            outro_script = f"""
+[TRANSITION MUSIC - 5 seconds]
+
+{host_name}: So there you have it - we've covered a lot of ground today, from 
+{', '.join(unique_topics) if unique_topics else 'these fascinating developments'} 
+and everything in between.
+
+{co_host}: The key takeaway? {self._generate_key_takeaway(segments)}
+
+[PAUSE]
+
+{host_name}: If you found today's episode valuable, please subscribe to {self.show_config.get('show_name', 'our podcast')} 
+wherever you get your podcasts, and leave us a review.
+
+{co_host}: And next week, we'll be diving into [NEXT EPISODE TEASER], so make sure you're subscribed.
+
+{host_name}: Until then, keep exploring, keep questioning...
+
+{co_host}: ...and keep pushing the boundaries of what's possible.
+
+{host_name}: I'm {host_name}...
+
+{co_host}: ...and I'm {co_host}, thanks for listening to {self.show_config.get('show_name', 'our podcast')}.
+
+[OUTRO MUSIC - {self.show_config.get('outro_music_duration', 30)} seconds]
+            """.strip()
+        
+        else:  # single_host format
+            outro_script = f"""
+[TRANSITION MUSIC - 5 seconds]
+
+{host_name}: So there you have it - we've covered a lot of ground today, from 
+{', '.join(unique_topics) if unique_topics else 'these fascinating developments'} 
+and everything in between.
+
+{host_name}: The key takeaway? {self._generate_key_takeaway(segments)}
+
+[PAUSE]
+
+{host_name}: If you found today's episode valuable, please subscribe to {self.show_config.get('show_name', 'our podcast')} 
 wherever you get your podcasts, and leave us a review - it really helps other listeners 
 discover the show.
 
-HOST: Next week, we'll be diving into [NEXT EPISODE TEASER], so make sure you're subscribed 
+{host_name}: Next week, we'll be diving into [NEXT EPISODE TEASER], so make sure you're subscribed 
 so you don't miss it.
 
-HOST: Until then, keep exploring, keep questioning, and keep pushing the boundaries of 
+{host_name}: Until then, keep exploring, keep questioning, and keep pushing the boundaries of 
 what's possible.
 
-HOST: I'm {self.show_config.get('host_name', 'your host')}, thanks for listening to {self.show_config.get('show_name', 'our podcast')}.
+{host_name}: I'm {host_name}, thanks for listening to {self.show_config.get('show_name', 'our podcast')}.
 
 [OUTRO MUSIC - {self.show_config.get('outro_music_duration', 30)} seconds]
-        """.strip()
+            """.strip()
         
         return {
             'script': outro_script,
@@ -300,7 +543,8 @@ HOST: I'm {self.show_config.get('host_name', 'your host')}, thanks for listening
                 {'type': 'transition_music', 'duration': 5},
                 {'type': 'outro_music', 'duration': self.show_config.get('outro_music_duration', 30)}
             ],
-            'call_to_action': True
+            'call_to_action': True,
+            'format': format_type
         }
     
     def _generate_key_takeaway(self, segments: List[Dict]) -> str:
@@ -558,10 +802,28 @@ if __name__ == "__main__":
         ]
     }
     
-    generator = PodcastScriptGenerator()
-    result = generator.generate_complete_script(sample_data)
+    # Test different formats
+    formats_to_test = [
+        {'format': 'single_host', 'host_name': 'ALEX'},
+        {'format': 'interview', 'host_name': 'ALEX', 'guest_name': 'DR. SMITH'},
+        {'format': 'multi_host', 'host_name': 'ALEX', 'co_host_name': 'JORDAN'}
+    ]
     
-    if result['status'] == 'success':
-        print(result['script'][:1000] + "...")  # Print first 1000 characters
-    else:
-        print(f"Error: {result['message']}")
+    for speaker_format in formats_to_test:
+        print(f"\n=== Testing {speaker_format['format'].upper()} Format ===")
+        
+        # Configure generator with specific speaker format
+        config = {
+            'show_name': 'AI Insights Podcast',
+            'speakers': speaker_format
+        }
+        generator = PodcastScriptGenerator(config)
+        result = generator.generate_complete_script(sample_data)
+        
+        if result['status'] == 'success':
+            print(f"Format: {result.get('format', 'unknown')}")
+            print(result['script'][:800] + "..." if len(result['script']) > 800 else result['script'])
+        else:
+            print(f"Error: {result['message']}")
+        
+        print("-" * 60)

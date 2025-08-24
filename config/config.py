@@ -2,6 +2,16 @@ import os
 from typing import Dict, Any, Optional
 import json
 from dataclasses import dataclass
+import sys
+
+# Add parent directory to path to import env_loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'python-scripts'))
+try:
+    from env_loader import get_env_var
+except ImportError:
+    # Fallback if env_loader is not available
+    def get_env_var(key: str, default: str = None) -> str:
+        return os.getenv(key, default)
 
 @dataclass
 class CloudflareConfig:
@@ -44,30 +54,30 @@ class Config:
         """Load configuration from environment variables and config file"""
         # Load from environment first
         self.cloudflare = CloudflareConfig(
-            worker_url=os.getenv('CLOUDFLARE_WORKER_URL', 'https://ai-podcast-script-api.your-domain.workers.dev'),
-            api_key=os.getenv('CLOUDFLARE_API_KEY'),
-            account_id=os.getenv('CLOUDFLARE_ACCOUNT_ID'),
-            zone_id=os.getenv('CLOUDFLARE_ZONE_ID')
+            worker_url=get_env_var('CLOUDFLARE_WORKER_URL', 'https://ai-podcast-script-api.your-domain.workers.dev'),
+            api_key=get_env_var('CLOUDFLARE_API_KEY'),
+            account_id=get_env_var('CLOUDFLARE_ACCOUNT_ID'),
+            zone_id=get_env_var('CLOUDFLARE_ZONE_ID')
         )
         
         self.llm = LLMConfig(
-            openai_api_key=os.getenv('OPENAI_API_KEY'),
-            anthropic_api_key=os.getenv('ANTHROPIC_API_KEY'),
-            default_provider=os.getenv('DEFAULT_LLM_PROVIDER', 'openai'),
-            default_model=os.getenv('DEFAULT_LLM_MODEL', 'gpt-3.5-turbo'),
-            max_tokens=int(os.getenv('LLM_MAX_TOKENS', '2000')),
-            temperature=float(os.getenv('LLM_TEMPERATURE', '0.3'))
+            openai_api_key=get_env_var('OPENAI_API_KEY'),
+            anthropic_api_key=get_env_var('ANTHROPIC_API_KEY'),
+            default_provider=get_env_var('DEFAULT_LLM_PROVIDER', 'openai'),
+            default_model=get_env_var('DEFAULT_LLM_MODEL', 'gpt-3.5-turbo'),
+            max_tokens=int(get_env_var('LLM_MAX_TOKENS', '2000')),
+            temperature=float(get_env_var('LLM_TEMPERATURE', '0.3'))
         )
         
         self.podcast = PodcastConfig(
-            show_name=os.getenv('DEFAULT_SHOW_NAME', 'AI Insights Podcast'),
-            host_name=os.getenv('DEFAULT_HOST_NAME', 'Your Host'),
-            tagline=os.getenv('DEFAULT_TAGLINE', 'Exploring the future of AI'),
-            intro_music_duration=int(os.getenv('INTRO_MUSIC_DURATION', '10')),
-            outro_music_duration=int(os.getenv('OUTRO_MUSIC_DURATION', '15')),
-            target_duration=int(os.getenv('TARGET_DURATION', '30')),
-            sponsor_segments=os.getenv('SPONSOR_SEGMENTS', 'false').lower() == 'true',
-            call_to_action=os.getenv('CALL_TO_ACTION', 'true').lower() == 'true'
+            show_name=get_env_var('SHOW_NAME', 'AI Insights Podcast'),
+            host_name=get_env_var('HOST_NAME', 'Your Host'),
+            tagline=get_env_var('SHOW_TAGLINE', 'Exploring the future of AI'),
+            intro_music_duration=int(get_env_var('INTRO_MUSIC_DURATION', '10')),
+            outro_music_duration=int(get_env_var('OUTRO_MUSIC_DURATION', '15')),
+            target_duration=int(get_env_var('TARGET_DURATION', '30')),
+            sponsor_segments=get_env_var('SPONSOR_SEGMENTS', 'false').lower() == 'true',
+            call_to_action=get_env_var('CALL_TO_ACTION', 'true').lower() == 'true'
         )
         
         # Override with config file if it exists

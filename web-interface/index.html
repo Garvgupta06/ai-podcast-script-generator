@@ -230,31 +230,30 @@
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-4">
-                                    <label for="sourceType" class="form-label">Source Type</label>
+                                <div class="col-md-6">
+                                    <label for="sourceType" class="form-label">Input Method</label>
                                     <select class="form-select" id="sourceType">
                                         <option value="manual">Manual Input</option>
-                                        <option value="youtube">YouTube Video</option>
-                                        <option value="news_url">News Article</option>
-                                        <option value="web_article">Web Article</option>
                                         <option value="file_upload">File Upload</option>
                                     </select>
+                                    <small class="text-muted">YouTube and web scraping features have been removed for security and reliability</small>
                                 </div>
-                                <div class="col-md-8">
-                                    <label for="sourceUrl" class="form-label">Source URL <small class="text-muted">(for URL sources)</small></label>
-                                    <input type="url" class="form-control" id="sourceUrl" placeholder="https://example.com/article">
+                                <div class="col-md-6">
+                                    <label class="form-label">File Upload</label>
+                                    <input type="file" class="form-control" id="fileUpload" accept=".txt,.md,.doc,.docx">
+                                    <small class="text-muted">Upload transcript files (.txt, .md, .doc, .docx)</small>
                                 </div>
                             </div>
                             
                             <div class="mt-3">
                                 <label for="rawTranscript" class="form-label">Raw Transcript</label>
                                 <textarea class="form-control" id="rawTranscript" rows="8" 
-                                    placeholder="Paste your raw transcript here, or use URL fetch above..."></textarea>
+                                    placeholder="Paste your raw transcript here, or upload a file above..."></textarea>
                             </div>
                             
                             <div class="mt-3 d-flex gap-2">
-                                <button class="btn btn-outline-primary" onclick="fetchFromUrl()">
-                                    <i class="fas fa-download"></i> Fetch from URL
+                                <button class="btn btn-outline-primary" onclick="loadFromFile()">
+                                    <i class="fas fa-upload"></i> Load from File
                                 </button>
                                 <button class="btn btn-primary" onclick="processTranscript()">
                                     <i class="fas fa-cog"></i> Process Transcript
@@ -283,6 +282,7 @@
                                     <select class="form-select" id="enhancementType">
                                         <option value="skip">Skip AI Enhancement (Recommended for demo)</option>
                                         <option value="comprehensive">Comprehensive - Full AI enhancement</option>
+                                        <option value="conversational">Conversational - Perfect for articles</option>
                                         <option value="minimal">Minimal - Basic cleanup only</option>
                                     </select>
                                 </div>
@@ -322,6 +322,30 @@
                             <div class="mt-3">
                                 <label for="showTagline" class="form-label">Show Tagline</label>
                                 <input type="text" class="form-control" id="showTagline" value="Exploring the future of artificial intelligence">
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h6><i class="fas fa-users"></i> Speaker Configuration</h6>
+                                <div class="mt-3">
+                                    <label for="podcastFormat" class="form-label">Podcast Format</label>
+                                    <select class="form-select" id="podcastFormat" onchange="updateSpeakerFields()">
+                                        <option value="interview">Interview (Host + Guest)</option>
+                                        <option value="multi_host">Multi-Host (Co-hosted)</option>
+                                        <option value="single_host">Single Host (Monologue style)</option>
+                                    </select>
+                                    <small class="form-text text-muted">Choose the speaking format for your podcast</small>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6" id="guestNameContainer" style="display: none;">
+                                        <label for="guestName" class="form-label">Guest Name</label>
+                                        <input type="text" class="form-control" id="guestName" value="GUEST" placeholder="e.g., DR. SMITH">
+                                    </div>
+                                    <div class="col-md-6" id="coHostNameContainer" style="display: none;">
+                                        <label for="coHostName" class="form-label">Co-Host Name</label>
+                                        <input type="text" class="form-control" id="coHostName" value="CO-HOST" placeholder="e.g., JORDAN">
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="mt-3 d-flex justify-content-end">
@@ -449,8 +473,26 @@
     
     <!-- Main Application JavaScript -->
     <script>
+        // Update speaker fields based on format selection
+        function updateSpeakerFields() {
+            const format = document.getElementById('podcastFormat').value;
+            const guestContainer = document.getElementById('guestNameContainer');
+            const coHostContainer = document.getElementById('coHostNameContainer');
+            
+            // Hide all optional fields first
+            guestContainer.style.display = 'none';
+            coHostContainer.style.display = 'none';
+            
+            // Show relevant fields based on format
+            if (format === 'interview') {
+                guestContainer.style.display = 'block';
+            } else if (format === 'multi_host') {
+                coHostContainer.style.display = 'block';
+            }
+        }
+        
         // Configuration
-        const API_BASE_URL = 'https://ai-podcast-script-api-prod.garvgupta2906.workers.dev';
+        const API_BASE_URL = 'https://podcast-generator-prod.garvgupta2906.workers.dev';
         
         // Global state
         let processedTranscript = null;
@@ -549,12 +591,12 @@
         }
         
         // Step functions
-        async function fetchFromUrl() {
-            const sourceUrl = document.getElementById('sourceUrl').value;
-            const sourceType = document.getElementById('sourceType').value;
+        async function loadFromFile() {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
             
-            if (!sourceUrl) {
-                alert('Please enter a URL');
+            if (!file) {
+                alert('Please select a file to upload');
                 return;
             }
             
@@ -562,19 +604,11 @@
             showLoading(button);
             
             try {
-                const result = await apiCall('/api/fetch-transcript', {
-                    source_url: sourceUrl,
-                    source_type: sourceType
-                }, 'POST');
-                
-                if (result.success) {
-                    document.getElementById('rawTranscript').value = result.data.transcript;
-                    showSuccess('step1Output', `Content fetched successfully! Title: ${result.data.title || 'Unknown'}`);
-                } else {
-                    showError('step1Output', result.message || 'Failed to fetch content');
-                }
+                const text = await file.text();
+                document.getElementById('rawTranscript').value = text;
+                showSuccess('step1Output', `File "${file.name}" loaded successfully! (${text.length} characters)`);
             } catch (error) {
-                showError('step1Output', error.message);
+                showError('step1Output', `Failed to read file: ${error.message}`);
             } finally {
                 showLoading(button, false);
             }
@@ -585,7 +619,7 @@
             const sourceType = document.getElementById('sourceType').value;
             
             if (!transcript.trim()) {
-                alert('Please enter a transcript or fetch from URL');
+                alert('Please enter a transcript or load from a file');
                 return;
             }
             
@@ -605,9 +639,10 @@
                         <div class="alert alert-success">
                             <h6><i class="fas fa-check-circle"></i> Transcript Processed Successfully!</h6>
                             <ul class="mb-0">
-                                <li>Segments: ${result.data.total_segments}</li>
-                                <li>Duration: ${result.data.estimated_total_duration} minutes</li>
-                                <li>Word count: ${result.data.total_word_count}</li>
+                                <li>Segments: ${result.data.total_segments || result.data.segments?.length || 'N/A'}</li>
+                                <li>Duration: ${result.data.estimated_total_duration || 'N/A'} minutes</li>
+                                <li>Word count: ${result.data.total_word_count || result.data.word_count || 'N/A'}</li>
+                                <li>Processing type: Manual input (no external fetching)</li>
                             </ul>
                         </div>
                     `;
@@ -615,10 +650,10 @@
                     showOutput('step1Output', outputHtml);
                     updateProgress(2, 'Transcript processed - ready for AI enhancement');
                 } else {
-                    showError('step1Output', 'Failed to process transcript');
+                    showError('step1Output', result.error || 'Failed to process transcript');
                 }
             } catch (error) {
-                showError('step1Output', error.message);
+                showError('step1Output', `Processing failed: ${error.message}`);
             } finally {
                 showLoading(button, false);
             }
@@ -643,7 +678,14 @@
                 }
                 
                 // Combine segments for enhancement
-                const combinedText = processedTranscript.segments.map(seg => seg.text).join('\n\n');
+                let combinedText = '';
+                if (processedTranscript.segments && Array.isArray(processedTranscript.segments)) {
+                    combinedText = processedTranscript.segments.map(seg => seg.text).join('\n\n');
+                } else if (processedTranscript.text) {
+                    combinedText = processedTranscript.text;
+                } else {
+                    combinedText = processedTranscript.toString();
+                }
                 
                 // Try AI enhancement first, but fallback gracefully
                 try {
@@ -662,10 +704,10 @@
                         const outputHtml = `
                             <div class="alert alert-success">
                                 <h6><i class="fas fa-magic"></i> Content Enhanced Successfully!</h6>
-                                <p><strong>Provider:</strong> ${result.data.provider}</p>
+                                <p><strong>Provider:</strong> ${result.data.provider || 'AI'}</p>
                                 <p><strong>Improvements:</strong></p>
                                 <ul class="mb-0">
-                                    ${result.data.improvements.map(imp => `<li>${imp}</li>`).join('')}
+                                    ${(result.data.improvements || ['Content enhanced successfully']).map(imp => `<li>${imp}</li>`).join('')}
                                 </ul>
                             </div>
                         `;
@@ -706,19 +748,50 @@
             // Validate configuration
             const showName = document.getElementById('showName').value.trim();
             const hostName = document.getElementById('hostName').value.trim();
+            const format = document.getElementById('podcastFormat').value;
             
             if (!showName || !hostName) {
                 alert('Please fill in both Show Name and Host Name');
                 return;
             }
             
+            // Additional validation for multi-speaker formats
+            if (format === 'interview') {
+                const guestName = document.getElementById('guestName').value.trim();
+                if (!guestName) {
+                    alert('Please fill in the Guest Name for interview format');
+                    return;
+                }
+            } else if (format === 'multi_host') {
+                const coHostName = document.getElementById('coHostName').value.trim();
+                if (!coHostName) {
+                    alert('Please fill in the Co-Host Name for multi-host format');
+                    return;
+                }
+            }
             // Show configuration confirmation
+            const speakers = {
+                format: format,
+                host_name: hostName,
+                guest_name: document.getElementById('guestName').value,
+                co_host_name: document.getElementById('coHostName').value
+            };
+            
+            let formatDesc = '';
+            if (format === 'interview') {
+                formatDesc = `Interview (${hostName} + ${speakers.guest_name})`;
+            } else if (format === 'multi_host') {
+                formatDesc = `Multi-Host (${hostName} + ${speakers.co_host_name})`;
+            } else {
+                formatDesc = `Single Host (${hostName})`;
+            }
+            
             const configHtml = `
                 <div class="alert alert-info">
                     <h6><i class="fas fa-cog"></i> Configuration Set!</h6>
                     <ul class="mb-0">
                         <li><strong>Show:</strong> ${showName}</li>
-                        <li><strong>Host:</strong> ${hostName}</li>
+                        <li><strong>Format:</strong> ${formatDesc}</li>
                         <li><strong>Tagline:</strong> ${document.getElementById('showTagline').value}</li>
                         <li><strong>Episode:</strong> ${document.getElementById('episodeTitle').value || 'Auto-generated'}</li>
                     </ul>
@@ -739,7 +812,13 @@
                 show_name: document.getElementById('showName').value,
                 host_name: document.getElementById('hostName').value,
                 show_tagline: document.getElementById('showTagline').value,
-                episode_title: document.getElementById('episodeTitle').value
+                episode_title: document.getElementById('episodeTitle').value,
+                speakers: {
+                    format: document.getElementById('podcastFormat').value,
+                    host_name: document.getElementById('hostName').value,
+                    guest_name: document.getElementById('guestName').value,
+                    co_host_name: document.getElementById('coHostName').value
+                }
             };
             
             const button = event.target;
@@ -903,19 +982,16 @@
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             updateProgress(1, 'Ready to start - enter your content');
+            updateSpeakerFields(); // Initialize speaker fields based on default format
             
-            // Auto-hide URL input for manual input
-            document.getElementById('sourceType').addEventListener('change', function() {
-                const sourceUrl = document.getElementById('sourceUrl');
-                if (this.value === 'manual' || this.value === 'file_upload') {
-                    sourceUrl.style.display = 'none';
-                } else {
-                    sourceUrl.style.display = 'block';
+            // File upload handling
+            document.getElementById('fileUpload').addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    const fileName = this.files[0].name;
+                    const fileSize = (this.files[0].size / 1024).toFixed(1);
+                    showSuccess('step1Output', `File "${fileName}" selected (${fileSize} KB). Click "Load from File" to import.`);
                 }
             });
-            
-            // Initial hide
-            document.getElementById('sourceUrl').style.display = 'none';
         });
     </script>
 </body>

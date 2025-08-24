@@ -12,7 +12,23 @@ export async function handleLLMEnhancement(request, env) {
     if (!content) {
       return new Response(JSON.stringify({
         error: 'Content is required for enhancement',
-        example: { content: 'Your transcript text here', enhancement_type: 'comprehensive' }
+        example: { 
+          content: 'Your article or transcript text here', 
+          enhancement_type: 'comprehensive' // Options: minimal, comprehensive, conversational
+        }
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+    
+    // Validate enhancement type
+    const validTypes = ['minimal', 'comprehensive', 'conversational'];
+    if (!validTypes.includes(enhancement_type)) {
+      return new Response(JSON.stringify({
+        error: 'Invalid enhancement type',
+        valid_types: validTypes,
+        example: { content: 'Your text here', enhancement_type: 'comprehensive' }
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
@@ -206,45 +222,64 @@ async function enhanceWithAnthropic(content, enhancementType, env) {
  * Build enhancement prompt based on type
  */
 function buildEnhancementPrompt(content, enhancementType) {
-  let basePrompt = `Please enhance the following transcript for podcast use. The transcript may contain:
-- Filler words (um, uh, like, you know)
-- Repetitive phrases
-- Unclear sentences
-- Missing punctuation
-- Speaker attribution issues
+  let basePrompt = `Please enhance the following content for podcast use. The content may be from an article, transcript, or other written material and needs to be transformed for conversational audio format.
+
+The content may contain:
+- Written language that needs to be more conversational
+- Dense paragraphs that need breaking up
+- Technical jargon that needs explanation
+- Information that should be presented as dialogue
+- Missing conversational flow
 
 Enhancement type: ${enhancementType}
 
-Original transcript:
+Original content:
 ${content}
 
 Please provide an enhanced version that:
-1. Removes unnecessary filler words
-2. Improves clarity and flow
-3. Maintains the original meaning and tone
-4. Adds appropriate punctuation
-5. Structures content logically
-6. Preserves important emphasis and emotion
+1. Converts written language to natural, spoken language
+2. Breaks dense information into digestible segments
+3. Adds conversational elements (rhetorical questions, explanations)
+4. Creates natural speaking rhythm and flow
+5. Maintains accuracy while improving accessibility
+6. Structures content for easy podcast delivery
+7. Identifies key quotes or talking points
+8. Suggests where speaker interaction would be natural
 
-Enhanced transcript:`;
+Enhanced content:`;
 
   if (enhancementType === 'comprehensive') {
     basePrompt += `
 
-Additionally:
-- Break content into logical segments
-- Add topic headings where appropriate
-- Identify key quotes or soundbites
-- Note any technical terms that might need explanation
-- Improve transitions between ideas`;
+Additionally for COMPREHENSIVE enhancement:
+- Break content into logical conversation segments
+- Add topic headings and natural transition points
+- Identify moments for host/guest interaction
+- Note technical terms that need explanation
+- Suggest where examples or stories would help
+- Create opportunities for back-and-forth dialogue
+- Add emphasis points and speaking cues
+- Structure for interview or multi-host format potential`;
     
   } else if (enhancementType === 'minimal') {
     basePrompt += `
 
-Focus only on:
-- Basic grammar and punctuation corrections
-- Removing obvious filler words
-- Maintaining original structure and style`;
+For MINIMAL enhancement, focus only on:
+- Converting written to spoken language style
+- Basic conversational flow improvements
+- Maintaining original structure and content
+- Simple clarity improvements`;
+
+  } else if (enhancementType === 'conversational') {
+    basePrompt += `
+
+For CONVERSATIONAL enhancement:
+- Transform article content into natural dialogue opportunities
+- Create moments for host questions and guest responses
+- Add natural speech patterns and flow
+- Break up monologues into conversational segments
+- Suggest speaker interaction points
+- Maintain informational value while adding conversational elements`;
   }
   
   return basePrompt;

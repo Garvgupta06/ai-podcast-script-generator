@@ -1,0 +1,110 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[FEATURE] "
+labels: ["enhancement", "needs-discussion"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A brief summary of the feature you'd like to see
+      placeholder: Add support for generating podcast scripts in multiple languages...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Need
+      description: What problem does this feature solve? What need does it address?
+      placeholder: |
+        Currently, the tool only works with English content, but many podcasters 
+        create content in other languages...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your idea for how this feature should work
+      placeholder: |
+        Add a language selection dropdown that:
+        1. Detects the input language
+        2. Generates appropriate prompts for different languages
+        3. Handles cultural context for different regions...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Are there alternative approaches you've considered?
+      placeholder: Other ways this problem could be solved...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve my workflow
+        - High - Essential for my use case
+        - Critical - Blocking my usage
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system should this feature be added to?
+      options:
+        - Web Interface
+        - API/Backend
+        - Python Scripts
+        - Documentation
+        - All/Multiple Components
+        - New Component
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Provide examples of how this feature would be used
+      placeholder: |
+        Example 1: User selects "Spanish" and pastes Spanish article
+        Example 2: System detects French content and generates French prompts...
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Ideas
+      description: Do you have ideas about how this could be implemented?
+      placeholder: |
+        - Could use language detection libraries
+        - Might need different prompt templates
+        - Could integrate with translation APIs...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I've searched existing issues to make sure this isn't a duplicate
+          required: true
+        - label: This feature would benefit other users, not just me
+          required: true
+        - label: I've considered the complexity and feasibility of this feature
+          required: false

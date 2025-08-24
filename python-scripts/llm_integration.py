@@ -6,6 +6,9 @@ from typing import Dict, List, Optional, Any, Union
 import logging
 from datetime import datetime
 
+# Load environment variables from .env file
+from .env_loader import get_env_var
+
 # Optional imports for LLM providers - will be handled gracefully if not available
 try:
     import openai
@@ -56,18 +59,18 @@ class LLMIntegration:
     
     def _setup_openai(self):
         """Setup OpenAI client"""
-        api_key = self.config.get('openai_api_key') or os.getenv('OPENAI_API_KEY')
+        api_key = self.config.get('openai_api_key') or get_env_var('OPENAI_API_KEY')
         if not api_key:
-            raise ValueError("OpenAI API key not provided")
+            raise ValueError("OpenAI API key not provided in config or .env file")
         
         openai.api_key = api_key
         return openai
     
     def _setup_anthropic(self):
         """Setup Anthropic Claude client"""
-        api_key = self.config.get('anthropic_api_key') or os.getenv('ANTHROPIC_API_KEY')
+        api_key = self.config.get('anthropic_api_key') or get_env_var('ANTHROPIC_API_KEY')
         if not api_key:
-            raise ValueError("Anthropic API key not provided")
+            raise ValueError("Anthropic API key not provided in config or .env file")
         
         return anthropic.Anthropic(api_key=api_key)
     

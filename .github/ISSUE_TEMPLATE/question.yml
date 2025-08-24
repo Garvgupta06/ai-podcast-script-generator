@@ -1,0 +1,88 @@
+name: ❓ Question or Help
+description: Get help with setup, usage, or troubleshooting
+title: "[QUESTION] "
+labels: ["question", "help-wanted"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Need help with the AI Podcast Script Generator? We're here to help! Please provide details about your question or issue.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What do you need help with?
+      placeholder: How do I set up the Cloudflare Workers deployment?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What category does your question fall into?
+      options:
+        - Setup and Installation
+        - API Configuration
+        - Web Interface Usage
+        - Script Generation
+        - Deployment Issues
+        - Performance Questions
+        - Integration Help
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide context about what you're trying to achieve
+      placeholder: |
+        I'm trying to set up the tool for my podcast that covers tech news.
+        I want to generate interview-style scripts from articles...
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken to solve this?
+      placeholder: |
+        1. Followed the Quick Start guide
+        2. Set up environment variables
+        3. Got stuck at the deployment step...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if relevant)
+      description: Your system and setup information
+      placeholder: |
+        - OS: Windows 11
+        - Node.js: v18.15.0
+        - Using: OpenAI API
+        - Browser: Chrome 120
+
+  - type: textarea
+    id: errors
+    attributes:
+      label: Error Messages (if any)
+      description: Include any error messages you're seeing
+      placeholder: Paste any error messages here...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I've read the README and documentation
+          required: true
+        - label: I've searched existing issues for similar questions
+          required: true
+        - label: I've provided enough context to understand my situation
+          required: true
