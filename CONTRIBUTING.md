@@ -6,10 +6,11 @@ Thank you for your interest in contributing to the AI Podcast Script Generator! 
 
 ### Prerequisites
 - Node.js 16+ (for Cloudflare Workers)
-- Python 3.8+ (for Python scripts)
+- Python 3.8+ (for Python scripts, optional)
 - Git for version control
 - A Cloudflare account (free tier works)
-- OpenAI or Anthropic API key
+- Perplexity API key (recommended primary provider)
+- OpenAI or Anthropic API key (optional fallback providers)
 
 ### Development Setup
 
@@ -22,7 +23,8 @@ Thank you for your interest in contributing to the AI Podcast Script Generator! 
 2. **Set up Environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your API keys
+   # Edit .env with your API keys (optional - for Python scripts only)
+   # For production, use Cloudflare Workers secrets instead
    ```
 
 3. **Install Dependencies**
@@ -30,16 +32,40 @@ Thank you for your interest in contributing to the AI Podcast Script Generator! 
    cd cloudflare-workers
    npm install
    cd ..
-   pip install -r requirements.txt
+   pip install -r requirements.txt  # Optional, for Python scripts
    ```
 
 4. **Deploy for Testing**
    ```bash
    cd cloudflare-workers
-   npx wrangler dev  # For local testing
+   # Set up API keys in Cloudflare Workers
+   npx wrangler secret put PERPLEXITY_API_KEY  # Primary provider
+   npx wrangler secret put OPENAI_API_KEY      # Optional fallback
+   npx wrangler secret put ANTHROPIC_API_KEY   # Optional fallback
+   
+   # Deploy to development environment
+   npx wrangler deploy --env development
+   # Or run locally for testing
+   npx wrangler dev
    ```
 
 ## 🔧 Development Guidelines
+
+### Current System Architecture (September 2025)
+
+The project uses a **serverless-first** architecture:
+
+**Primary Stack:**
+- **Cloudflare Workers** - Serverless API (main system)
+- **Perplexity AI** - Primary LLM provider (sonar-pro model)
+- **Static HTML/JS** - Web interface (no server required)
+- **Multi-provider fallback** - OpenAI/Anthropic as backups
+
+**Production URL:** https://podcast-generator-prod.garvgupta2906.workers.dev
+
+**Optional Components:**
+- Python scripts (legacy/alternative implementation)
+- Local development tools
 
 ### Code Style
 
@@ -60,14 +86,20 @@ Thank you for your interest in contributing to the AI Podcast Script Generator! 
 ### Project Structure
 
 ```
-├── cloudflare-workers/    # Serverless API (JavaScript)
+├── cloudflare-workers/    # Serverless API (JavaScript) - MAIN SYSTEM
 │   ├── src/handlers/     # API endpoint logic
-│   ├── src/utils/        # Utility functions
-│   └── tests/            # API tests
-├── web-interface/        # Frontend (HTML/JS/CSS)
-├── python-scripts/      # Python implementations
+│   │   ├── llm.js       # AI enhancement (Perplexity primary)
+│   │   ├── content.js   # Content processing
+│   │   ├── script.js    # Script generation
+│   │   └── transcript.js # Transcript processing
+│   ├── src/utils/        # Utility functions (CORS, etc.)
+│   └── src/auth/         # Authentication logic
+├── web-interface/        # Frontend (HTML/JS/CSS) - MAIN UI
+│   └── index.html       # Complete web application
+├── python-scripts/      # Python implementations (OPTIONAL)
 ├── config/              # Configuration management
-└── tests/               # Integration tests
+├── tests/               # Integration tests (OPTIONAL)
+└── docs/                # Documentation
 ```
 
 ## 🐛 Reporting Issues
@@ -112,15 +144,20 @@ git checkout -b fix/issue-description
 ```bash
 # Test API endpoints
 cd cloudflare-workers
-npm run test
+npx wrangler deploy --env development
 
-# Test Python scripts
-cd tests
-python test_all.py
+# Test health endpoint
+curl https://your-worker-dev.your-username.workers.dev/api/health
 
 # Test web interface manually
+# Open web-interface/index.html in browser
+# OR serve locally:
 python -m http.server 8000
 # Open http://localhost:8000/web-interface/
+
+# Test Python scripts (if using)
+cd tests
+python test_all.py
 ```
 
 ### 5. Commit Your Changes
@@ -152,7 +189,8 @@ Detailed explanation if needed"
 - Test all endpoints with various inputs
 - Include error cases and edge cases
 - Verify response formats
-- Test with different API providers (OpenAI/Anthropic)
+- Test with different API providers (Perplexity primary, OpenAI/Anthropic fallbacks)
+- Test health endpoint for provider availability
 
 ### Web Interface Testing
 - Test on different browsers
@@ -161,10 +199,11 @@ Detailed explanation if needed"
 - Check error handling
 
 ### Python Scripts Testing
-- Unit tests for individual functions
+- Unit tests for individual functions (optional component)
 - Integration tests for workflows
 - Test with different input formats
 - Verify output quality
+- Note: Python scripts are optional - main system is Cloudflare Workers
 
 ## 📚 Documentation
 
@@ -184,9 +223,10 @@ Detailed explanation if needed"
 
 ### High Priority
 - **Performance optimization** for large content processing
-- **Error handling** improvements
-- **User experience** enhancements
+- **Error handling** improvements for Perplexity API
+- **User experience** enhancements in web interface
 - **Mobile responsiveness** improvements
+- **Provider fallback** system refinements
 
 ### Medium Priority
 - **New export formats** (Word, PDF, etc.)
@@ -204,9 +244,11 @@ Detailed explanation if needed"
 
 ### API Keys
 - Never commit API keys to the repository
-- Use environment variables for sensitive data
+- Use Cloudflare Workers secrets for production
+- Use environment variables for local development only
 - Test with dummy keys when possible
 - Document security requirements
+- Perplexity API key should be primary, others as fallbacks
 
 ### Input Validation
 - Validate all user inputs

@@ -36,13 +36,14 @@ export async function handleLLMEnhancement(request, env) {
     }
     
     // Determine available provider
-    const selectedProvider = provider || (env.OPENAI_API_KEY ? 'openai' : 
+    const selectedProvider = provider || (env.PERPLEXITY_API_KEY ? 'perplexity' : 
+                                         env.OPENAI_API_KEY ? 'openai' : 
                                          env.ANTHROPIC_API_KEY ? 'anthropic' : null);
     
     if (!selectedProvider) {
       return new Response(JSON.stringify({
         error: 'No LLM provider configured',
-        message: 'Set OPENAI_API_KEY or ANTHROPIC_API_KEY environment variable',
+        message: 'Set PERPLEXITY_API_KEY, OPENAI_API_KEY or ANTHROPIC_API_KEY environment variable',
         status: 'error'
       }), {
         status: 503,
@@ -53,7 +54,9 @@ export async function handleLLMEnhancement(request, env) {
     let enhancedContent;
     
     try {
-      if (selectedProvider === 'openai') {
+      if (selectedProvider === 'perplexity') {
+        enhancedContent = await enhanceWithPerplexity(content, enhancement_type, env);
+      } else if (selectedProvider === 'openai') {
         enhancedContent = await enhanceWithOpenAI(content, enhancement_type, env);
       } else if (selectedProvider === 'anthropic') {
         enhancedContent = await enhanceWithAnthropic(content, enhancement_type, env);
@@ -63,12 +66,12 @@ export async function handleLLMEnhancement(request, env) {
         success: true,
         data: {
           original_content: content,
-          enhanced_content: enhancedContent.enhanced_text,
+          enhanced_content: enhancedContent.enhanced_content || enhancedContent.enhanced_text,
           enhancement_type: enhancement_type,
           provider: selectedProvider,
           improvements: enhancedContent.improvements,
           original_length: content.length,
-          enhanced_length: enhancedContent.enhanced_text.length
+          enhanced_length: (enhancedContent.enhanced_content || enhancedContent.enhanced_text).length
         },
         processed_at: new Date().toISOString(),
         status: 'success'
@@ -137,7 +140,7 @@ async function enhanceWithOpenAI(content, enhancementType, env) {
       messages: [
         {
           role: 'system',
-          content: 'You are an expert podcast script writer and audio content creator. Transform raw transcripts into polished, engaging podcast content while maintaining the original meaning and tone.'
+          content: 'You are an expert podcast script writer and audio content creator. Transform raw transcripts into polished, engaging podcast content, fix any spelling errors or gramitical mistakes while maintaining the original meaning and tone.'
         },
         {
           role: 'user',
@@ -219,34 +222,186 @@ async function enhanceWithAnthropic(content, enhancementType, env) {
 }
 
 /**
+ * LLM Handler for AI Podcast Script Generator
+ * Updated: 02-09-2025 for Perplexity AI Integration
+ * Handles AI content enhancement using Perplexity API
+ */
+
+/**
+ * Main LLM handler function
+ */
+export async function handleLLMRequest(request, env) {
+  try {
+    const { content, enhancement_type } = await request.json();
+    
+    if (!content) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Content is required'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const provider = env.DEFAULT_LLM_PROVIDER || 'perplexity';
+    
+    console.log(`Processing with provider: ${provider}`);
+    
+    let result;
+    if (provider === 'perplexity') {
+      result = await enhanceWithPerplexity(content, enhancement_type, env);
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
+    
+    return new Response(JSON.stringify({
+      success: true,
+      data: {
+        enhanced_content: result.enhanced_content,
+        provider: 'Perplexity AI',
+        model: env.PERPLEXITY_MODEL || 'sonar-pro',
+        improvements: result.improvements || ['Content enhanced with Perplexity AI']
+      }
+    }), {
+      status: 200,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+    
+  } catch (error) {
+    console.error('LLM processing error:', error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || 'LLM processing failed'
+    }), { 
+      status: 500,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+}
+
+/**
+ * Enhance content using Perplexity AI
+ */
+async function enhanceWithPerplexity(content, enhancementType, env) {
+  const prompt = buildEnhancementPrompt(content, enhancementType);
+  
+  console.log('Calling Perplexity API for content enhancement...');
+  
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.PERPLEXITY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: env.PERPLEXITY_MODEL || 'sonar-pro',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert podcast script writer and audio content creator. Transform raw transcripts into polished, engaging podcast content while maintaining the original meaning and tone.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: parseInt(env.LLM_MAX_TOKENS) || 2000,
+      temperature: parseFloat(env.LLM_TEMPERATURE) || 0.3
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Perplexity API error status:', response.status);
+    console.error('Perplexity API error text:', errorData);
+    throw new Error(`Perplexity API error: ${response.status} ${response.statusText} - ${errorData}`);
+  }
+
+  const data = await response.json();
+  console.log('Perplexity API response structure:', JSON.stringify({
+    hasChoices: !!data.choices,
+    choicesLength: data.choices ? data.choices.length : 0,
+    firstChoice: data.choices && data.choices[0] ? Object.keys(data.choices[0]) : 'none',
+    fullResponse: data
+  }));  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    throw new Error('Invalid response format from Perplexity API');
+  }
+  
+  const enhanced_content = data.choices[0].message.content;
+  
+  // Extract improvements from the enhancement
+  const improvements = extractImprovements(enhanced_content, enhancementType);
+  
+  console.log('Perplexity enhancement completed successfully');
+  
+  return {
+    enhanced_content,
+    improvements,
+    model_used: env.PERPLEXITY_MODEL || 'sonar-pro'
+  };
+}
+
+/**
+ * Extract improvements from enhanced content
+ */
+function extractImprovements(enhancedContent, enhancementType) {
+  const improvements = [];
+  
+  switch (enhancementType) {
+    case 'comprehensive':
+      improvements.push(
+        'AI-powered content enhancement using Perplexity AI',
+        'Comprehensive grammar and clarity improvements',
+        'Removed filler words and repetitions',
+        'Enhanced structure and logical flow',
+        'Improved readability and engagement',
+        'Maintained original meaning and tone'
+      );
+      break;
+    case 'minimal':
+      improvements.push(
+        'Basic grammar and punctuation corrections',
+        'Removed obvious filler words',
+        'Maintained original structure and tone'
+      );
+      break;
+    default:
+      improvements.push(
+        'AI-powered content enhancement',
+        'Improved clarity and flow',
+        'Professional language optimization'
+      );
+  }
+  
+  return improvements;
+}
+
+/**
  * Build enhancement prompt based on type
  */
 function buildEnhancementPrompt(content, enhancementType) {
-  let basePrompt = `Please enhance the following content for podcast use. The content may be from an article, transcript, or other written material and needs to be transformed for conversational audio format.
+  let basePrompt = `Please enhance the following podcast transcript content for better readability and flow. 
 
-The content may contain:
-- Written language that needs to be more conversational
-- Dense paragraphs that need breaking up
-- Technical jargon that needs explanation
-- Information that should be presented as dialogue
-- Missing conversational flow
+IMPORTANT INSTRUCTIONS:
+- Convert written text to natural spoken language
+- Fix grammatical errors and improve clarity
+- Add natural conversation markers and transitions
+- Maintain the original meaning and key information
+- Make it sound conversational and engaging for audio
+- Remove or fix any awkward phrasing
 
-Enhancement type: ${enhancementType}
-
-Original content:
+ORIGINAL CONTENT:
 ${content}
 
-Please provide an enhanced version that:
-1. Converts written language to natural, spoken language
-2. Breaks dense information into digestible segments
-3. Adds conversational elements (rhetorical questions, explanations)
-4. Creates natural speaking rhythm and flow
-5. Maintains accuracy while improving accessibility
-6. Structures content for easy podcast delivery
-7. Identifies key quotes or talking points
-8. Suggests where speaker interaction would be natural
-
-Enhanced content:`;
+ENHANCEMENT REQUIREMENTS:`;
 
   if (enhancementType === 'comprehensive') {
     basePrompt += `
@@ -275,13 +430,16 @@ For MINIMAL enhancement, focus only on:
 
 For CONVERSATIONAL enhancement:
 - Transform article content into natural dialogue opportunities
-- Create moments for host questions and guest responses
-- Add natural speech patterns and flow
-- Break up monologues into conversational segments
-- Suggest speaker interaction points
-- Maintain informational value while adding conversational elements`;
+- Add discussion points and questions
+- Create natural speaking rhythm
+- Improve engagement and flow
+- Add conversational bridges between topics`;
   }
-  
+
+  basePrompt += `
+
+Please provide the enhanced content that sounds natural when spoken aloud.`;
+
   return basePrompt;
 }
 

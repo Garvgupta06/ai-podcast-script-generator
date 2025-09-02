@@ -107,7 +107,14 @@ function handleRoot() {
 function handleHealth(env) {
   const hasOpenAI = !!env.OPENAI_API_KEY;
   const hasAnthropic = !!env.ANTHROPIC_API_KEY;
-  const hasLLM = hasOpenAI || hasAnthropic;
+  const hasPerplexity = !!env.PERPLEXITY_API_KEY;
+  const hasLLM = hasOpenAI || hasAnthropic || hasPerplexity;
+  
+  // Determine preferred provider based on DEFAULT_LLM_PROVIDER or availability
+  let preferredProvider = env.DEFAULT_LLM_PROVIDER || 'none';
+  if (preferredProvider === 'none' || !preferredProvider) {
+    preferredProvider = hasPerplexity ? 'perplexity' : hasOpenAI ? 'openai' : hasAnthropic ? 'anthropic' : 'none';
+  }
   
   return jsonResponse({
     status: 'healthy',
@@ -119,7 +126,11 @@ function handleHealth(env) {
       llm_enhancement: hasLLM,
       openai_available: hasOpenAI,
       anthropic_available: hasAnthropic,
-      preferred_provider: hasOpenAI ? 'openai' : hasAnthropic ? 'anthropic' : 'none'
+      perplexity_available: hasPerplexity,
+      preferred_provider: preferredProvider,
+      current_model: preferredProvider === 'perplexity' ? (env.PERPLEXITY_MODEL || 'sonar-pro') : 
+                     preferredProvider === 'openai' ? (env.OPENAI_MODEL || 'gpt-3.5-turbo') : 
+                     preferredProvider === 'anthropic' ? (env.ANTHROPIC_MODEL || 'claude-3-sonnet-20240229') : 'none'
     },
     endpoints_active: [
       '/api/health',

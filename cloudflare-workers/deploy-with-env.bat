@@ -19,9 +19,9 @@ for /f "usebackq tokens=1,2 delims==" %%a in ("..\\.env") do (
 )
 
 REM Check if at least one API key is present
-if "%OPENAI_API_KEY%"=="" if "%ANTHROPIC_API_KEY%"=="" (
-    echo ❌ Error: At least one LLM API key is required
-    echo Please add OPENAI_API_KEY or ANTHROPIC_API_KEY to your .env file
+if "%PERPLEXITY_API_KEY%"== (
+    echo ❌ Error: PERPLEXITY_API_KEY is required
+    echo Please add PERPLEXITY_API_KEY to your .env file
     exit /b 1
 )
 
@@ -30,20 +30,14 @@ echo ✅ Environment variables loaded successfully
 REM Set Cloudflare Workers secrets
 echo 🔐 Setting up Cloudflare Workers secrets...
 
-if not "%OPENAI_API_KEY%"=="" (
-    echo Setting OPENAI_API_KEY...
-    echo %OPENAI_API_KEY% | npx wrangler secret put OPENAI_API_KEY --env production
-)
+echo Setting PERPLEXITY_API_KEY...
+echo %PERPLEXITY_API_KEY% | npx wrangler secret put PERPLEXITY_API_KEY --env production
 
-if not "%ANTHROPIC_API_KEY%"=="" (
-    echo Setting ANTHROPIC_API_KEY...
-    echo %ANTHROPIC_API_KEY% | npx wrangler secret put ANTHROPIC_API_KEY --env production
-)
+echo Setting DEFAULT_LLM_PROVIDER...
+echo %DEFAULT_LLM_PROVIDER% | npx wrangler secret put DEFAULT_LLM_PROVIDER --env production
 
-if not "%VALID_API_KEYS%"=="" (
-    echo Setting VALID_API_KEYS...
-    echo %VALID_API_KEYS% | npx wrangler secret put VALID_API_KEYS --env production
-)
+echo Setting PERPLEXITY_MODEL...
+echo %PERPLEXITY_MODEL% | npx wrangler secret put PERPLEXITY_MODEL --env production
 
 REM Deploy to Cloudflare Workers
 echo 🚀 Deploying to Cloudflare Workers...
@@ -51,7 +45,7 @@ npx wrangler deploy --env production
 
 if %ERRORLEVEL%==0 (
     echo ✅ Deployment successful!
-    echo 🌐 API URL: https://ai-podcast-script-api-prod.garvgupta2906.workers.dev
+    echo 🌐 API URL: https://podcast-generator-prod.garvgupta2906.workers.dev
     echo.
     echo Available endpoints:
     echo   - GET  / ^(API documentation^)
@@ -61,7 +55,7 @@ if %ERRORLEVEL%==0 (
     echo   - POST /api/generate-script ^(Generate podcast script^)
     echo.
     echo 🔧 Test your deployment:
-    echo curl https://ai-podcast-script-api-prod.garvgupta2906.workers.dev/api/health
+    echo curl https://podcast-generator-prod.garvgupta2906.workers.dev/api/health
 ) else (
     echo ❌ Deployment failed!
     exit /b 1

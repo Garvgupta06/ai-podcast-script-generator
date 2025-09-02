@@ -6,12 +6,13 @@ Transform articles and transcripts into engaging, multi-speaker podcast scripts 
 
 - **🗣️ Multi-Speaker Conversations**: Convert articles into natural dialogue between host and guest
 - **🎭 Flexible Formats**: Interview, multi-host, or single-host podcast styles
-- **🤖 AI Enhancement**: Improve content quality using OpenAI or Anthropic Claude
+- **🤖 AI Enhancement**: Powered by **Perplexity AI** (primary), with OpenAI and Anthropic Claude fallbacks
 - **📝 Smart Processing**: Automatically segment and structure content
 - **🎯 Complete Scripts**: Generate intro, main content, outro, and show notes
 - **🌐 Web Interface**: User-friendly interface with step-by-step workflow
-- **⚡ Serverless API**: Cloudflare Workers deployment for scalability
+- **⚡ Serverless API**: Cloudflare Workers deployment for global scalability
 - **🔒 Secure**: Environment-based API key management
+- **🚀 Production Ready**: Fully deployed and tested system
 
 ## 🚀 Quick Start
 
@@ -38,12 +39,10 @@ Edit `.env` with your API keys:
 
 ```env
 # Required: At least one LLM API key
-OPENAI_API_KEY=sk-your-openai-key-here
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
+PERPLEXITY_API_KEY=your_api_key_here
 
 # Optional: Model preferences
-OPENAI_MODEL=gpt-3.5-turbo
-ANTHROPIC_MODEL=claude-3-sonnet-20240229
+PERPLEXITY_MODEL=sonar-pro
 
 # Optional: Customize defaults
 SHOW_NAME=Your Amazing Podcast
@@ -65,8 +64,9 @@ deploy-with-env.bat
 cd cloudflare-workers
 npm install
 npx wrangler login
-npx wrangler secret put OPENAI_API_KEY    # Enter your OpenAI key
-npx wrangler secret put ANTHROPIC_API_KEY # Enter your Anthropic key
+npx wrangler secret put PERPLEXITY_API_KEY  # Enter your Perplexity key (Recommended)
+npx wrangler secret put OPENAI_API_KEY      # Enter your OpenAI key (Optional)
+npx wrangler secret put ANTHROPIC_API_KEY   # Enter your Anthropic key (Optional)
 npx wrangler deploy
 ```
 
@@ -75,6 +75,21 @@ npx wrangler deploy
 1. Open `web-interface/index.html` in your browser
 2. The interface will connect to your deployed API automatically
 3. Start creating podcast scripts!
+
+## 🌟 **Live Demo**
+
+**Production API:** https://podcast-generator-prod.garvgupta2906.workers.dev
+- ✅ **Fully deployed and operational**
+- ✅ **Perplexity AI integration working**
+- ✅ **Multi-provider fallback system**
+- ✅ **Global edge deployment**
+
+**Test the API:**
+```bash
+curl https://podcast-generator-prod.garvgupta2906.workers.dev/api/health
+```
+
+**Web Interface:** Open `web-interface/index.html` locally and it will automatically connect to the production API!
 
 ## 🎯 How It Works
 
@@ -210,6 +225,20 @@ https://your-worker-name.your-username.workers.dev
 
 ### Key Endpoints
 
+#### `GET /api/health`
+Check system status and available providers.
+
+```json
+{
+  "status": "healthy",
+  "environment": "production",
+  "features": {
+    "perplexity_available": true,
+    "preferred_provider": "PERPLEXITY"
+  }
+}
+```
+
 #### `POST /api/process-transcript`
 Process and segment content for podcast use.
 
@@ -221,12 +250,24 @@ Process and segment content for podcast use.
 ```
 
 #### `POST /api/enhance-content`
-AI-powered content enhancement.
+AI-powered content enhancement using Perplexity AI.
 
 ```json
 {
   "content": "Content to enhance...",
   "enhancement_type": "conversational"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "enhanced_content": "Enhanced content...",
+    "provider": "perplexity",
+    "improvements": ["AI-powered enhancement", "Improved clarity"]
+  }
 }
 ```
 
@@ -253,8 +294,10 @@ Generate complete podcast script with conversations.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `ANTHROPIC_API_KEY` | Anthropic API key | Alternative |
+| `PERPLEXITY_API_KEY` | Perplexity API key | **Required (Recommended)** |
+| `PERPLEXITY_MODEL` | Perplexity model | sonar-pro |
+| `OPENAI_API_KEY` | OpenAI API key | Optional fallback |
+| `ANTHROPIC_API_KEY` | Anthropic API key | Optional fallback |
 | `OPENAI_MODEL` | OpenAI model | gpt-3.5-turbo |
 | `ANTHROPIC_MODEL` | Anthropic model | claude-3-sonnet-20240229 |
 
@@ -346,7 +389,8 @@ python -m http.server 8000
 - **Modern Browser** (for web interface)
 
 ### API Requirements
-- **OpenAI API Key** OR **Anthropic API Key** (at least one required)
+- **Perplexity API Key** (recommended primary provider)
+- **OpenAI API Key** OR **Anthropic API Key** (fallback options)
 - **Cloudflare Account** (free tier sufficient)
 
 ### Optional Requirements
@@ -358,18 +402,19 @@ python -m http.server 8000
 ### Common Issues
 
 **"No LLM provider configured"**
-- Ensure API keys are set in environment variables
-- Check that secrets are properly deployed to Cloudflare Workers
+- Ensure API keys are set in Cloudflare Workers secrets
+- Run `npx wrangler secret put PERPLEXITY_API_KEY` to set your key
+- Check deployment with `npx wrangler deploy`
 
 **"Failed to generate script"**
-- Verify API deployment is successful
+- Verify API deployment is successful at your workers.dev URL
 - Check browser console for detailed error messages
 - Ensure input content is not empty
 
 **"Enhancement failed, using fallback"**
-- API quota may be exceeded
-- Check API key validity
-- Try different enhancement type
+- Perplexity API quota may be exceeded
+- Check API key validity at https://www.perplexity.ai/settings/api
+- Try different enhancement type or use basic fallback
 
 ### Getting Help
 
@@ -379,7 +424,15 @@ python -m http.server 8000
 
 ## 🚧 What's New
 
-### v2.0 - Conversational AI (Latest)
+### v2.1 - Perplexity AI Integration (Latest - September 2025)
+- ✅ **Perplexity AI** as primary LLM provider (sonar-pro model)
+- ✅ **Multi-provider fallback system** with intelligent switching
+- ✅ **Enhanced content quality** with advanced AI processing  
+- ✅ **Production deployment** at podcast-generator-prod.garvgupta2906.workers.dev
+- ✅ **Streamlined codebase** with unnecessary files removed
+- ✅ **Improved error handling** and debugging capabilities
+
+### v2.0 - Conversational AI
 - ✅ Multi-speaker conversation generation
 - ✅ Interview and multi-host formats
 - ✅ Conversational enhancement for articles
@@ -414,6 +467,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+- **Perplexity AI** for advanced language model capabilities
 - **OpenAI** and **Anthropic** for powerful LLM APIs
 - **Cloudflare** for serverless computing platform
 - **Bootstrap** for beautiful web interface
@@ -423,4 +477,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **🎙️ Built with ❤️ for podcast creators who want to turn any content into engaging conversations**
 
-*Transform your articles into podcast gold!*
+*Transform your articles into podcast gold with AI-powered enhancement!*

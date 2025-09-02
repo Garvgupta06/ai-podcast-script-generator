@@ -519,6 +519,7 @@ Requirements:
 6. Include natural speech patterns and back-and-forth dialogue
 7. Add production cues in [BRACKETS]
 8. Target duration: 60-90 seconds of spoken content
+9. Make sure the guest and the host are discussing about the content and conversing with each other
 
 Format as a conversational script with clear speaker labels (${speakers.host_name}: and ${speakers.guest_name}:)
 
@@ -730,9 +731,13 @@ Requirements:
 Outro Script:`;
   }
 
-  const provider = env.OPENAI_API_KEY ? 'openai' : 'anthropic';
+  const provider = env.DEFAULT_LLM_PROVIDER || 
+                   (env.PERPLEXITY_API_KEY ? 'perplexity' : 
+                    env.OPENAI_API_KEY ? 'openai' : 'anthropic');
   
-  if (provider === 'openai') {
+  if (provider === 'perplexity') {
+    return await callPerplexity(prompt, env, 600);
+  } else if (provider === 'openai') {
     return await callOpenAI(prompt, env, 600);
   } else {
     return await callAnthropic(prompt, env, 600);
@@ -1154,6 +1159,42 @@ function generateTransitions(segments) {
   }
   
   return transitions;
+}
+
+/**
+ * Call Perplexity API
+ */
+async function callPerplexity(prompt, env, maxTokens = 1000) {
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.PERPLEXITY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: env.PERPLEXITY_MODEL || 'sonar-pro',
+      messages: [
+        { role: 'system', content: 'You are an expert podcast script writer and audio content creator.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: maxTokens,
+      temperature: parseFloat(env.LLM_TEMPERATURE) || 0.3
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Perplexity API error:', errorData);
+    throw new Error(`Perplexity API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    throw new Error('Invalid response format from Perplexity API');
+  }
+  
+  return data.choices[0].message.content.trim();
 }
 
 /**
