@@ -257,30 +257,54 @@ jobs:
     - name: Check if critical jobs passed
       run: |
         # Critical jobs that must pass
-        critical_jobs=("test-api" "validate-api-endpoints" "validate-web-interface" "build-check" "production-validation")
         all_passed=true
         
-        for job in "${critical_jobs[@]}"; do
-          status="${{ needs[job].result }}"
-          if [ "$status" != "success" ]; then
-            echo "❌ Critical job failed: $job ($status)"
-            all_passed=false
-          else
-            echo "✅ Critical job passed: $job"
-          fi
-        done
+        if [ "${{ needs.test-api.result }}" != "success" ]; then
+          echo "❌ Critical job failed: test-api (${{ needs.test-api.result }})"
+          all_passed=false
+        else
+          echo "✅ Critical job passed: test-api"
+        fi
+        
+        if [ "${{ needs.validate-api-endpoints.result }}" != "success" ]; then
+          echo "❌ Critical job failed: validate-api-endpoints (${{ needs.validate-api-endpoints.result }})"
+          all_passed=false
+        else
+          echo "✅ Critical job passed: validate-api-endpoints"
+        fi
+        
+        if [ "${{ needs.validate-web-interface.result }}" != "success" ]; then
+          echo "❌ Critical job failed: validate-web-interface (${{ needs.validate-web-interface.result }})"
+          all_passed=false
+        else
+          echo "✅ Critical job passed: validate-web-interface"
+        fi
+        
+        if [ "${{ needs.build-check.result }}" != "success" ]; then
+          echo "❌ Critical job failed: build-check (${{ needs.build-check.result }})"
+          all_passed=false
+        else
+          echo "✅ Critical job passed: build-check"
+        fi
+        
+        if [ "${{ needs.production-validation.result }}" != "success" ]; then
+          echo "❌ Critical job failed: production-validation (${{ needs.production-validation.result }})"
+          all_passed=false
+        else
+          echo "✅ Critical job passed: production-validation"
+        fi
         
         # Non-critical jobs (can be warnings)
         if [ "${{ needs.security-scan.result }}" != "success" ]; then
-          echo "⚠️ Security scan had issues (non-blocking)"
+          echo "⚠️ Security scan had issues (non-blocking): ${{ needs.security-scan.result }}"
         fi
         
         if [ "${{ needs.check-env-example.result }}" != "success" ]; then
-          echo "⚠️ Environment check had issues (non-blocking)"
+          echo "⚠️ Environment check had issues (non-blocking): ${{ needs.check-env-example.result }}"
         fi
         
         if [ "${{ needs.documentation.result }}" != "success" ]; then
-          echo "⚠️ Documentation check had issues (non-blocking)"
+          echo "⚠️ Documentation check had issues (non-blocking): ${{ needs.documentation.result }}"
         fi
         
         if [ "$all_passed" = true ]; then
